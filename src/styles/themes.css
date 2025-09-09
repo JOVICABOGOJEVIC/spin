@@ -1,0 +1,601 @@
+/* Default theme (Light) */
+:root {
+  /* Base colors */
+  --color-primary: #2563eb;
+  --color-secondary: #4b5563;
+  --color-accent: #8b5cf6;
+  --color-background: #ffffff;
+  --color-text: #1f2937;
+  --color-border: #e5e7eb;
+  --color-input: #f3f4f6;
+  --color-error: #ef4444;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+
+  /* Navigation specific colors */
+  --nav-bg: #1e293b;
+  --nav-text: #ffffff;
+  --nav-text-hover: #ffffff;
+  --nav-bg-hover: rgba(255, 255, 255, 0.1);
+  --nav-border: rgba(255, 255, 255, 0.1);
+  --nav-active-bg: rgba(255, 255, 255, 0.2);
+  --nav-active-text: #ffffff;
+
+  /* Calendar specific colors */
+  --calendar-bg: #ffffff;
+  --calendar-border: #e5e7eb;
+  --calendar-text: #1f2937;
+  --calendar-header-bg: #f3f4f6;
+  --calendar-today-bg: #dbeafe;
+  --calendar-selected-bg: #2563eb;
+  --calendar-selected-text: #ffffff;
+  --calendar-event-bg: #818cf8;
+  --calendar-event-text: #ffffff;
+
+  /* Metrics/Dashboard cards */
+  --metrics-card-bg: #ffffff;
+  --metrics-card-border: #e5e7eb;
+  --metrics-text-primary: #1f2937;
+  --metrics-text-secondary: #6b7280;
+  --metrics-value-color: #2563eb;
+  --metrics-icon-bg: rgba(37, 99, 235, 0.1);
+  --metrics-icon-color: #2563eb;
+
+  /* Form specific colors */
+  --form-bg: #ffffff;
+  --form-border: #e5e7eb;
+  --form-input-bg: #f9fafb;
+  --form-input-border: #d1d5db;
+  --form-input-text: #1f2937;
+  --form-label-text: #374151;
+  --form-placeholder: #9ca3af;
+  --form-focus-border: #2563eb;
+  --form-focus-ring: rgba(37, 99, 235, 0.2);
+
+  /* Theme transition */
+  --theme-transition: all 0.3s ease;
+
+  /* Header and Navigation */
+  --header-bg: #ffffff;
+  --nav-bg-image: none;
+  --form-bg-image: none;
+  --list-bg-image: none;
+
+  /* Typography */
+  --font-family: 'Inter', sans-serif;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+}
+
+/* Theme preview override */
+[data-theme-preview] * {
+  transition: var(--theme-transition) !important;
+}
+
+/* Dark theme */
+[data-theme="dark"],
+[data-theme-preview="dark"] {
+  --color-primary: #3b82f6;
+  --color-secondary: #9ca3af;
+  --color-accent: #a78bfa;
+  --color-background: #111827;
+  --color-text: #f3f4f6;
+  --color-border: #374151;
+  --color-input: #1f2937;
+  --color-error: #f87171;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+
+  --nav-bg: #0f172a;
+  --nav-text: #9ca3af;
+  --nav-text-hover: #ffffff;
+  --nav-bg-hover: rgba(255, 255, 255, 0.05);
+  --nav-border: #1e293b;
+  --nav-active-bg: rgba(255, 255, 255, 0.1);
+  --nav-active-text: #ffffff;
+
+  /* Calendar specific colors */
+  --calendar-bg: #1f2937;
+  --calendar-border: #374151;
+  --calendar-text: #f3f4f6;
+  --calendar-header-bg: #111827;
+  --calendar-today-bg: #1e40af;
+  --calendar-selected-bg: #3b82f6;
+  --calendar-selected-text: #ffffff;
+  --calendar-event-bg: #6366f1;
+  --calendar-event-text: #ffffff;
+
+  /* Metrics/Dashboard cards */
+  --metrics-card-bg: #1f2937;
+  --metrics-card-border: #374151;
+  --metrics-text-primary: #f3f4f6;
+  --metrics-text-secondary: #9ca3af;
+  --metrics-value-color: #3b82f6;
+  --metrics-icon-bg: rgba(59, 130, 246, 0.1);
+  --metrics-icon-color: #3b82f6;
+
+  /* Form specific colors */
+  --form-bg: #1f2937;
+  --form-border: #374151;
+  --form-input-bg: #111827;
+  --form-input-border: #4b5563;
+  --form-input-text: #f3f4f6;
+  --form-label-text: #e5e7eb;
+  --form-placeholder: #6b7280;
+  --form-focus-border: #3b82f6;
+  --form-focus-ring: rgba(59, 130, 246, 0.2);
+
+  /* Typography */
+  --font-family: 'Inter', sans-serif;
+}
+
+/* Ocean theme */
+[data-theme="ocean"],
+[data-theme-preview="ocean"] {
+  --color-primary: #0ea5e9;
+  --color-secondary: #64748b;
+  --color-accent: #06b6d4;
+  --color-background: #f0f9ff;
+  --color-text: #0f172a;
+  --color-border: #bae6fd;
+  --color-input: #e0f2fe;
+  --color-error: #e11d48;
+  --color-success: #0d9488;
+  --color-warning: #eab308;
+
+  --nav-bg: #0c4a6e;
+  --nav-text: #bae6fd;
+  --nav-text-hover: #ffffff;
+  --nav-bg-hover: rgba(7, 89, 133, 0.5);
+  --nav-border: #075985;
+  --nav-active-bg: #075985;
+  --nav-active-text: #ffffff;
+
+  /* Calendar specific colors */
+  --calendar-bg: #f0f9ff;
+  --calendar-border: #bae6fd;
+  --calendar-text: #0f172a;
+  --calendar-header-bg: #e0f2fe;
+  --calendar-today-bg: #bae6fd;
+  --calendar-selected-bg: #0ea5e9;
+  --calendar-selected-text: #ffffff;
+  --calendar-event-bg: #0284c7;
+  --calendar-event-text: #ffffff;
+
+  /* Metrics/Dashboard cards */
+  --metrics-card-bg: #ffffff;
+  --metrics-card-border: #bae6fd;
+  --metrics-text-primary: #0f172a;
+  --metrics-text-secondary: #64748b;
+  --metrics-value-color: #0ea5e9;
+  --metrics-icon-bg: rgba(14, 165, 233, 0.1);
+  --metrics-icon-color: #0ea5e9;
+
+  /* Form specific colors */
+  --form-bg: #ffffff;
+  --form-border: #bae6fd;
+  --form-input-bg: #f0f9ff;
+  --form-input-border: #7dd3fc;
+  --form-input-text: #0f172a;
+  --form-label-text: #0369a1;
+  --form-placeholder: #64748b;
+  --form-focus-border: #0ea5e9;
+  --form-focus-ring: rgba(14, 165, 233, 0.2);
+
+  /* Typography */
+  --font-family: 'Poppins', sans-serif;
+}
+
+/* Forest theme */
+[data-theme="forest"],
+[data-theme-preview="forest"] {
+  --color-primary: #059669;
+  --color-secondary: #4b5563;
+  --color-accent: #10b981;
+  --color-background: #f0fdf4;
+  --color-text: #064e3b;
+  --color-border: #86efac;
+  --color-input: #dcfce7;
+  --color-error: #dc2626;
+  --color-success: #16a34a;
+  --color-warning: #ca8a04;
+
+  --nav-bg: #064e3b;
+  --nav-text: #86efac;
+  --nav-text-hover: #ffffff;
+  --nav-bg-hover: rgba(6, 95, 70, 0.5);
+  --nav-border: #065f46;
+  --nav-active-bg: #065f46;
+  --nav-active-text: #ffffff;
+}
+
+/* Sunset theme */
+[data-theme="sunset"],
+[data-theme-preview="sunset"] {
+  --color-primary: #ea580c;
+  --color-secondary: #78716c;
+  --color-accent: #f97316;
+  --color-background: #fff7ed;
+  --color-text: #7c2d12;
+  --color-border: #fed7aa;
+  --color-input: #ffedd5;
+  --color-error: #b91c1c;
+  --color-success: #15803d;
+  --color-warning: #854d0e;
+
+  --nav-bg: #9a3412;
+  --nav-text: #fed7aa;
+  --nav-text-hover: #ffffff;
+  --nav-bg-hover: rgba(154, 52, 18, 0.5);
+  --nav-border: #c2410c;
+  --nav-active-bg: #c2410c;
+  --nav-active-text: #ffffff;
+}
+
+/* Purple Rain theme */
+[data-theme="purple-rain"],
+[data-theme-preview="purple-rain"] {
+  --color-primary: #7c3aed;
+  --color-secondary: #6b7280;
+  --color-accent: #8b5cf6;
+  --color-background: #faf5ff;
+  --color-text: #4c1d95;
+  --color-border: #ddd6fe;
+  --color-input: #f3e8ff;
+  --color-error: #be123c;
+  --color-success: #15803d;
+  --color-warning: #a16207;
+
+  --nav-bg: #6d28d9;
+  --nav-text: #ddd6fe;
+  --nav-text-hover: #ffffff;
+  --nav-bg-hover: rgba(109, 40, 217, 0.5);
+  --nav-border: #7c3aed;
+  --nav-active-bg: #7c3aed;
+  --nav-active-text: #ffffff;
+}
+
+/* Midnight theme */
+[data-theme="midnight"],
+[data-theme-preview="midnight"] {
+  --color-primary: #2dd4bf;
+  --color-secondary: #94a3b8;
+  --color-accent: #06b6d4;
+  --color-background: #0f172a;
+  --color-text: #e2e8f0;
+  --color-border: #1e293b;
+  --color-input: #1e293b;
+  --color-error: #fb7185;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+
+  --nav-bg: #020617;
+  --nav-text: #94a3b8;
+  --nav-text-hover: #ffffff;
+  --nav-bg-hover: rgba(30, 41, 59, 0.5);
+  --nav-border: #1e293b;
+  --nav-active-bg: #1e293b;
+  --nav-active-text: #ffffff;
+}
+
+/* Coffee theme */
+[data-theme="coffee"],
+[data-theme-preview="coffee"] {
+  --color-primary: #9a3412;
+  --color-secondary: #78716c;
+  --color-accent: #c2410c;
+  --color-background: #fef3c7;
+  --color-text: #78350f;
+  --color-border: #fde68a;
+  --color-input: #fef3c7;
+  --color-error: #b91c1c;
+  --color-success: #166534;
+  --color-warning: #92400e;
+
+  --nav-bg: #78350f;
+  --nav-text: #fde68a;
+  --nav-text-hover: #ffffff;
+  --nav-bg-hover: rgba(120, 53, 15, 0.5);
+  --nav-border: #92400e;
+  --nav-active-bg: #92400e;
+  --nav-active-text: #ffffff;
+}
+
+/* Nordic theme */
+[data-theme="nordic"],
+[data-theme-preview="nordic"] {
+  --color-primary: #64748b;
+  --color-secondary: #94a3b8;
+  --color-accent: #475569;
+  --color-background: #f8fafc;
+  --color-text: #1e293b;
+  --color-border: #e2e8f0;
+  --color-input: #f1f5f9;
+  --color-error: #dc2626;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+
+  --nav-bg: #334155;
+  --nav-text: #cbd5e1;
+  --nav-text-hover: #ffffff;
+  --nav-bg-hover: rgba(51, 65, 85, 0.5);
+  --nav-border: #475569;
+  --nav-active-bg: #475569;
+  --nav-active-text: #ffffff;
+}
+
+/* Neon theme */
+[data-theme="neon"],
+[data-theme-preview="neon"] {
+  --color-primary: #22d3ee;
+  --color-secondary: #94a3b8;
+  --color-accent: #e879f9;
+  --color-background: #18181b;
+  --color-text: #fafafa;
+  --color-border: #27272a;
+  --color-input: #27272a;
+  --color-error: #fb7185;
+  --color-success: #4ade80;
+  --color-warning: #facc15;
+
+  --nav-bg: #09090b;
+  --nav-text: #22d3ee;
+  --nav-text-hover: #e879f9;
+  --nav-bg-hover: rgba(39, 39, 42, 0.5);
+  --nav-border: #27272a;
+  --nav-active-bg: #27272a;
+  --nav-active-text: #e879f9;
+}
+
+/* Cherry Blossom theme */
+[data-theme="cherry-blossom"],
+[data-theme-preview="cherry-blossom"] {
+  --color-primary: #ec4899;
+  --color-secondary: #94a3b8;
+  --color-accent: #f472b6;
+  --color-background: #fdf2f8;
+  --color-text: #831843;
+  --color-border: #fbcfe8;
+  --color-input: #fce7f3;
+  --color-error: #be123c;
+  --color-success: #15803d;
+  --color-warning: #a16207;
+
+  --nav-bg: #be185d;
+  --nav-text: #fbcfe8;
+  --nav-text-hover: #ffffff;
+  --nav-bg-hover: rgba(190, 24, 93, 0.5);
+  --nav-border: #db2777;
+  --nav-active-bg: #db2777;
+  --nav-active-text: #ffffff;
+}
+
+/* Appliance Repair Theme */
+[data-theme="appliance-repair"],
+[data-theme-preview="appliance-repair"] {
+  --color-primary: #4299e1;
+  --color-secondary: #718096;
+  --color-accent: #2b6cb0;
+  --color-background: #f7fafc;
+  --color-text: #2d3748;
+  --color-border: #e2e8f0;
+  --color-input: #edf2f7;
+  --color-error: #e53e3e;
+  --color-success: #38a169;
+  --color-warning: #d69e2e;
+  
+  /* Navigation */
+  --nav-bg: #2b6cb0;
+  --nav-text: #e2e8f0;
+  --nav-text-hover: #ffffff;
+  --nav-bg-hover: rgba(43, 108, 176, 0.5);
+  --nav-border: #2c5282;
+  --nav-active-bg: #2c5282;
+  --nav-active-text: #ffffff;
+
+  /* Calendar specific colors */
+  --calendar-bg: #ffffff;
+  --calendar-border: #e2e8f0;
+  --calendar-text: #2d3748;
+  --calendar-header-bg: #edf2f7;
+  --calendar-today-bg: #bee3f8;
+  --calendar-selected-bg: #4299e1;
+  --calendar-selected-text: #ffffff;
+  --calendar-event-bg: #2b6cb0;
+  --calendar-event-text: #ffffff;
+
+  /* Metrics/Dashboard cards */
+  --metrics-card-bg: #ffffff;
+  --metrics-card-border: #e2e8f0;
+  --metrics-text-primary: #2d3748;
+  --metrics-text-secondary: #718096;
+  --metrics-value-color: #4299e1;
+  --metrics-icon-bg: rgba(66, 153, 225, 0.1);
+  --metrics-icon-color: #4299e1;
+
+  /* Form specific colors */
+  --form-bg: #ffffff;
+  --form-border: #e2e8f0;
+  --form-input-bg: #f7fafc;
+  --form-input-border: #cbd5e0;
+  --form-input-text: #2d3748;
+  --form-label-text: #2c5282;
+  --form-placeholder: #718096;
+  --form-focus-border: #4299e1;
+  --form-focus-ring: rgba(66, 153, 225, 0.2);
+  
+  /* Typography */
+  --font-family: 'Roboto', sans-serif;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+}
+
+/* Auto Service Theme */
+[data-theme="auto-service"],
+[data-theme-preview="auto-service"] {
+  --color-primary: #ed8936;
+  --color-secondary: #718096;
+  --color-accent: #c05621;
+  --color-background: #fffaf0;
+  --color-text: #2d3748;
+  --color-border: #edf2f7;
+  --color-input: #fff5eb;
+  --color-error: #e53e3e;
+  --color-success: #38a169;
+  --color-warning: #d69e2e;
+  
+  /* Backgrounds */
+  --header-bg: #ed8936;
+  --nav-bg: #c05621;
+  --header-bg-image: linear-gradient(135deg, #ed8936 0%, #c05621 100%);
+  --mobile-header-bg-image: linear-gradient(90deg, #ed8936 0%, #c05621 100%);
+  --nav-bg-image: linear-gradient(180deg, #c05621 0%, #9c4221 100%);
+  --form-bg-image: radial-gradient(circle at top right, #feebc8 0%, transparent 60%);
+  --list-bg-image: linear-gradient(180deg, #fffaf0 0%, transparent 100%);
+  
+  /* Typography */
+  --font-family: 'Oswald', sans-serif;
+}
+
+/* Painting Service Theme */
+[data-theme="painting-service"],
+[data-theme-preview="painting-service"] {
+  --color-primary: #48bb78;
+  --color-secondary: #718096;
+  --color-accent: #2f855a;
+  --color-background: #f0fff4;
+  --color-text: #2d3748;
+  --color-border: #e6ffed;
+  --color-input: #f0fff4;
+  --color-error: #e53e3e;
+  --color-success: #38a169;
+  --color-warning: #d69e2e;
+  
+  /* Backgrounds */
+  --header-bg: #48bb78;
+  --nav-bg: #2f855a;
+  --header-bg-image: linear-gradient(135deg, #48bb78 0%, #2f855a 100%);
+  --mobile-header-bg-image: linear-gradient(90deg, #48bb78 0%, #2f855a 100%);
+  --nav-bg-image: linear-gradient(180deg, #2f855a 0%, #276749 100%);
+  --form-bg-image: radial-gradient(circle at top right, #c6f6d5 0%, transparent 60%);
+  --list-bg-image: linear-gradient(180deg, #f0fff4 0%, transparent 100%);
+  
+  /* Typography */
+  --font-family: 'Quicksand', sans-serif;
+}
+
+/* IT Service Theme */
+[data-theme="it-service"],
+[data-theme-preview="it-service"] {
+  --color-primary: #667eea;
+  --color-secondary: #718096;
+  --color-accent: #5a67d8;
+  --color-background: #f7fafc;
+  --color-text: #2d3748;
+  --color-border: #e2e8f0;
+  --color-input: #ebf4ff;
+  --color-error: #e53e3e;
+  --color-success: #38a169;
+  --color-warning: #d69e2e;
+  
+  /* Backgrounds */
+  --header-bg: #667eea;
+  --nav-bg: #5a67d8;
+  --header-bg-image: linear-gradient(135deg, #667eea 0%, #5a67d8 100%);
+  --mobile-header-bg-image: linear-gradient(90deg, #667eea 0%, #5a67d8 100%);
+  --nav-bg-image: linear-gradient(180deg, #5a67d8 0%, #4c51bf 100%);
+  --form-bg-image: radial-gradient(circle at top right, #c3dafe 0%, transparent 60%);
+  --list-bg-image: linear-gradient(180deg, #ebf8ff 0%, transparent 100%);
+  
+  /* Typography */
+  --font-family: 'JetBrains Mono', monospace;
+}
+
+/* Construction Theme */
+[data-theme="construction"],
+[data-theme-preview="construction"] {
+  --color-primary: #f6ad55;
+  --color-secondary: #718096;
+  --color-accent: #dd6b20;
+  --color-background: #fffaf0;
+  --color-text: #2d3748;
+  --color-border: #feebc8;
+  --color-input: #fffaf0;
+  --color-error: #e53e3e;
+  --color-success: #38a169;
+  --color-warning: #d69e2e;
+  
+  /* Backgrounds */
+  --header-bg: #f6ad55;
+  --nav-bg: #dd6b20;
+  --header-bg-image: linear-gradient(135deg, #f6ad55 0%, #dd6b20 100%);
+  --mobile-header-bg-image: linear-gradient(90deg, #f6ad55 0%, #dd6b20 100%);
+  --nav-bg-image: linear-gradient(180deg, #dd6b20 0%, #c05621 100%);
+  --form-bg-image: radial-gradient(circle at top right, #feebc8 0%, transparent 60%);
+  --list-bg-image: linear-gradient(180deg, #fffaf0 0%, transparent 100%);
+  
+  /* Typography */
+  --font-family: 'Montserrat', sans-serif;
+}
+
+/* Electrical Service Theme */
+[data-theme="electrical-service"],
+[data-theme-preview="electrical-service"] {
+  --color-primary: #fc8181;
+  --color-secondary: #718096;
+  --color-accent: #e53e3e;
+  --color-background: #fff5f5;
+  --color-text: #2d3748;
+  --color-border: #fed7d7;
+  --color-input: #fff5f5;
+  --color-error: #e53e3e;
+  --color-success: #38a169;
+  --color-warning: #d69e2e;
+  
+  /* Backgrounds */
+  --header-bg: #fc8181;
+  --nav-bg: #e53e3e;
+  --header-bg-image: linear-gradient(135deg, #fc8181 0%, #e53e3e 100%);
+  --mobile-header-bg-image: linear-gradient(90deg, #fc8181 0%, #e53e3e 100%);
+  --nav-bg-image: linear-gradient(180deg, #e53e3e 0%, #c53030 100%);
+  --form-bg-image: radial-gradient(circle at top right, #fed7d7 0%, transparent 60%);
+  --list-bg-image: linear-gradient(180deg, #fff5f5 0%, transparent 100%);
+  
+  /* Typography */
+  --font-family: 'Titillium Web', sans-serif;
+}
+
+/* HVAC Service Theme */
+[data-theme="hvac-service"],
+[data-theme-preview="hvac-service"] {
+  --color-primary: #4fd1c5;
+  --color-secondary: #718096;
+  --color-accent: #319795;
+  --color-background: #e6fffa;
+  --color-text: #2d3748;
+  --color-border: #b2f5ea;
+  --color-input: #e6fffa;
+  --color-error: #e53e3e;
+  --color-success: #38a169;
+  --color-warning: #d69e2e;
+  
+  /* Backgrounds */
+  --header-bg: #4fd1c5;
+  --nav-bg: #319795;
+  --header-bg-image: linear-gradient(135deg, #4fd1c5 0%, #319795 100%);
+  --mobile-header-bg-image: linear-gradient(90deg, #4fd1c5 0%, #319795 100%);
+  --nav-bg-image: linear-gradient(180deg, #319795 0%, #2c7a7b 100%);
+  --form-bg-image: radial-gradient(circle at top right, #b2f5ea 0%, transparent 60%);
+  --list-bg-image: linear-gradient(180deg, #e6fffa 0%, transparent 100%);
+  
+  /* Typography */
+  --font-family: 'Source Sans Pro', sans-serif;
+} 
