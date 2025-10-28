@@ -28,6 +28,11 @@ API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
+      console.log('🚨 API Interceptor: 401 Unauthorized detected');
+      console.log('  Request URL:', error.config?.url);
+      console.log('  Request method:', error.config?.method);
+      console.log('  Current pathname:', window.location.pathname);
+      
       // Token je istekao ili nije validan
       localStorage.removeItem('profile');
       localStorage.removeItem('token');
@@ -96,59 +101,10 @@ API.interceptors.response.use(
   }
 );
 
-// Koristi mock podatke ili stvarni API
-const useMockData = false;
+// Koristi stvarni API
 
 // Auth API
 export const signIn = (formData) => {
-  if (useMockData) {
-    // Simuliraj uspešnu prijavu
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const { email, password } = formData;
-        
-        // Provera da li su podaci popunjeni
-        if (!email || !password) {
-          return Promise.reject({
-            response: { data: { message: 'Email and password are required' } }
-          });
-        }
-        
-        // Dummy podaci za prijavu - u stvarnosti bi trebalo proveriti iz baze
-        const mockUser = {
-          _id: 'comp-123456',
-          ownerName: 'Business Owner',
-          email: email,
-          companyName: 'Business Name',
-          phone: '+38111223344',
-          city: 'Belgrade',
-          address: 'Main Street 123',
-          businessType: 'Home Appliance Technician',
-          role: 'owner',
-          hasInventory: true,
-          offersMaintenanceContracts: true,
-          serviceableApplianceTypes: ['Refrigerator', 'Washing Machine', 'Dishwasher', 'Oven'],
-          defaultWarrantyDuration: 12,
-          // Specifično za servis kućnih aparata
-          serviceOnSite: true, // Omogućeno terensko servisiranje
-          trackClientAddresses: true // Omogućeno praćenje adresa klijenata
-        };
-        
-        // Simulirani odgovor sa servera
-        const mockResponse = {
-          result: mockUser,
-          token: 'dummy_jwt_token.that.looks_real',
-          businessType: mockUser.businessType
-        };
-        
-        // Sačuvaj token
-        localStorage.setItem('token', mockResponse.token);
-        
-        resolve({ data: mockResponse });
-      }, 500);
-    });
-  }
-  
   console.log('Sending sign in request with data:', formData);
   return API.post('/auth/company/signin', formData)
     .then(response => {
@@ -220,21 +176,8 @@ export const signUpCompany = (formData) => API.post('/auth/registercompany', for
 
 // Job API
 export const createJob = (jobData) => {
-  if (useMockData) {
-    // Simuliraj kreiranje posla - vrati isti objekat sa dodatim ID-em i vremenom
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          data: {
-            ...jobData,
-            _id: `job-${Math.floor(Math.random() * 10000)}`,
-            createdAt: new Date().toISOString()
-          }
-        });
-      }, 500);
-    });
-  }
-  
+  console.log('API createJob called with jobData:', jobData);
+  console.log('API URL:', '/jobs');
   return API.post('/jobs', jobData);
 };
 
@@ -243,411 +186,74 @@ export const getJobs = (businessType) => {
     businessType = getBusinessType();
   }
   
-  if (useMockData) {
-    // Vratiti mock podatke iz localStorage ako postoje, inače null (koristiće se reducer)
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockJobs = localStorage.getItem('mockJobs');
-        resolve({
-          data: mockJobs ? JSON.parse(mockJobs) : null
-        });
-      }, 500);
-    });
-  }
+  console.log('API getJobs called with businessType:', businessType);
+  console.log('API URL:', `/jobs?businessType=${businessType}`);
   
   return API.get(`/jobs?businessType=${businessType}`);
 };
 
-export const getJob = (id) => {
-  if (useMockData) {
-    // Simuliraj dohvatanje posla po ID-u
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const mockJobs = localStorage.getItem('mockJobs');
-        if (!mockJobs) {
-          return reject({ response: { data: { message: 'No jobs found' } } });
-        }
-        
-        const jobs = JSON.parse(mockJobs);
-        const job = jobs.find(j => j._id === id);
-        
-        if (!job) {
-          return reject({ response: { data: { message: 'Job not found' } } });
-        }
-        
-        resolve({ data: job });
-      }, 500);
-    });
-  }
-  
-  return API.get(`/jobs/${id}`);
-};
+export const getJob = (id) => API.get(`/jobs/${id}`);
 
-export const updateJob = (id, updatedJobData) => {
-  if (useMockData) {
-    // Simuliraj ažuriranje posla
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const mockJobs = localStorage.getItem('mockJobs');
-        if (!mockJobs) {
-          return reject({ response: { data: { message: 'No jobs found' } } });
-        }
-        
-        const jobs = JSON.parse(mockJobs);
-        const jobIndex = jobs.findIndex(j => j._id === id);
-        
-        if (jobIndex === -1) {
-          return reject({ response: { data: { message: 'Job not found' } } });
-        }
-        
-        const updatedJob = {
-          ...jobs[jobIndex],
-          ...updatedJobData,
-          _id: id, // Osiguraj da ID ostane isti
-          updatedAt: new Date().toISOString()
-        };
-        
-        jobs[jobIndex] = updatedJob;
-        localStorage.setItem('mockJobs', JSON.stringify(jobs));
-        
-        resolve({ data: updatedJob });
-      }, 500);
-    });
-  }
-  
-  return API.patch(`/jobs/${id}`, updatedJobData);
-};
+export const updateJob = (id, updatedJobData) => API.patch(`/jobs/${id}`, updatedJobData);
 
-export const deleteJob = (id) => {
-  if (useMockData) {
-    // Simuliraj brisanje posla
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const mockJobs = localStorage.getItem('mockJobs');
-        if (!mockJobs) {
-          return reject({ response: { data: { message: 'No jobs found' } } });
-        }
-        
-        const jobs = JSON.parse(mockJobs);
-        const jobIndex = jobs.findIndex(j => j._id === id);
-        
-        if (jobIndex === -1) {
-          return reject({ response: { data: { message: 'Job not found' } } });
-        }
-        
-        jobs.splice(jobIndex, 1);
-        localStorage.setItem('mockJobs', JSON.stringify(jobs));
-        
-        resolve({ data: { id, message: 'Job deleted successfully' } });
-      }, 500);
-    });
-  }
-  
-  return API.delete(`/jobs/${id}`);
-};
+export const deleteJob = (id) => API.delete(`/jobs/${id}`);
 
 // Worker API calls
-export const fetchWorkers = () => API.get('/workers');
-export const fetchWorker = (id) => API.get(`/workers/${id}`);
-export const createWorker = (workerData) => API.post('/workers', workerData);
-export const updateWorker = (id, updatedWorkerData) => API.patch(`/workers/${id}`, updatedWorkerData);
-export const deleteWorker = (id) => API.delete(`/workers/${id}`);
+export const fetchWorkers = () => API.get('/worker');
+export const fetchWorker = (id) => API.get(`/worker/${id}`);
+export const createWorker = (workerData) => API.post('/worker', workerData);
+export const updateWorker = (id, updatedWorkerData) => API.patch(`/worker/${id}`, updatedWorkerData);
+export const deleteWorker = (id) => API.delete(`/worker/${id}`);
 
 // Team API calls
-export const fetchTeams = () => API.get('/teams');
-export const fetchTeam = (id) => API.get(`/teams/${id}`);
-export const createTeam = (teamData) => API.post('/teams', teamData);
-export const updateTeam = (id, updatedTeamData) => API.patch(`/teams/${id}`, updatedTeamData);
-export const deleteTeam = (id) => API.delete(`/teams/${id}`);
+export const fetchTeams = () => API.get('/team');
+export const fetchTeam = (id) => API.get(`/team/${id}`);
+export const createTeam = (teamData) => API.post('/team', teamData);
+export const updateTeam = (id, updatedTeamData) => API.patch(`/team/${id}`, updatedTeamData);
+export const deleteTeam = (id) => API.delete(`/team/${id}`);
 
 // Model API calls
 export const getModels = () => {
-  if (useMockData) {
-    // Return mock data from localStorage if exists, otherwise null (will use reducer mock function)
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockModels = localStorage.getItem('mockModels');
-        resolve({
-          data: mockModels ? JSON.parse(mockModels) : null
-        });
-      }, 500);
-    });
-  }
-  
   return API.get('/models');
 };
 
 export const getModel = (id) => {
-  if (useMockData) {
-    // Simulate fetching a model by ID
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const mockModels = localStorage.getItem('mockModels');
-        if (!mockModels) {
-          return reject({ response: { data: { message: 'No models found' } } });
-        }
-        
-        const models = JSON.parse(mockModels);
-        const model = models.find(m => m._id === id);
-        
-        if (!model) {
-          return reject({ response: { data: { message: 'Model not found' } } });
-        }
-        
-        resolve({ data: model });
-      }, 500);
-    });
-  }
-  
   return API.get(`/models/${id}`);
 };
 
 export const createModel = (modelData) => {
-  if (useMockData) {
-    // Simulate creating a model - return same object with added ID and timestamp
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const newModel = {
-          ...modelData,
-          _id: `model-${Math.floor(Math.random() * 10000)}`,
-          createdAt: new Date().toISOString()
-        };
-        
-        // Save to localStorage if there are existing models
-        const mockModels = localStorage.getItem('mockModels');
-        if (mockModels) {
-          const models = JSON.parse(mockModels);
-          models.push(newModel);
-          localStorage.setItem('mockModels', JSON.stringify(models));
-        } else {
-          localStorage.setItem('mockModels', JSON.stringify([newModel]));
-        }
-        
-        resolve({
-          data: newModel
-        });
-      }, 500);
-    });
-  }
-  
   return API.post('/models', modelData);
 };
 
 export const updateModel = (id, updatedModelData) => {
-  if (useMockData) {
-    // Simulate updating a model
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const mockModels = localStorage.getItem('mockModels');
-        if (!mockModels) {
-          return reject({ response: { data: { message: 'No models found' } } });
-        }
-        
-        const models = JSON.parse(mockModels);
-        const modelIndex = models.findIndex(m => m._id === id);
-        
-        if (modelIndex === -1) {
-          return reject({ response: { data: { message: 'Model not found' } } });
-        }
-        
-        const updatedModel = {
-          ...models[modelIndex],
-          ...updatedModelData,
-          _id: id, // Ensure ID remains the same
-          updatedAt: new Date().toISOString()
-        };
-        
-        models[modelIndex] = updatedModel;
-        localStorage.setItem('mockModels', JSON.stringify(models));
-        
-        resolve({ data: updatedModel });
-      }, 500);
-    });
-  }
-  
   return API.patch(`/models/${id}`, updatedModelData);
 };
 
 export const deleteModel = (id) => {
-  if (useMockData) {
-    // Simulate deleting a model
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const mockModels = localStorage.getItem('mockModels');
-        if (!mockModels) {
-          return reject({ response: { data: { message: 'No models found' } } });
-        }
-        
-        const models = JSON.parse(mockModels);
-        const modelIndex = models.findIndex(m => m._id === id);
-        
-        if (modelIndex === -1) {
-          return reject({ response: { data: { message: 'Model not found' } } });
-        }
-        
-        models.splice(modelIndex, 1);
-        localStorage.setItem('mockModels', JSON.stringify(models));
-        
-        resolve({ data: { id, message: 'Model deleted successfully' } });
-      }, 500);
-    });
-  }
-  
   return API.delete(`/models/${id}`);
 };
 
 // Client API
 export const getClients = () => {
-  if (useMockData) {
-    // Return mock clients from localStorage if they exist, otherwise null
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockClients = localStorage.getItem('mockClients');
-        resolve({
-          data: mockClients ? JSON.parse(mockClients) : null
-        });
-      }, 500);
-    });
-  }
-  
   return API.get('/client');
 };
 
 export const getClient = (id) => {
-  if (useMockData) {
-    // Simulate fetching a client by ID
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const mockClients = localStorage.getItem('mockClients');
-        if (!mockClients) {
-          return reject({ response: { data: { message: 'No clients found' } } });
-        }
-        
-        const clients = JSON.parse(mockClients);
-        const client = clients.find(c => c._id === id);
-        
-        if (!client) {
-          return reject({ response: { data: { message: 'Client not found' } } });
-        }
-        
-        resolve({ data: client });
-      }, 500);
-    });
-  }
-  
   return API.get(`/client/${id}`);
 };
 
 export const createClient = (clientData) => {
-  if (useMockData) {
-    // Simulate creating a client - return the same object with added ID and timestamp
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const newClient = {
-          ...clientData,
-          _id: `client-${Math.floor(Math.random() * 10000)}`,
-          createdAt: new Date().toISOString()
-        };
-        
-        // Store in localStorage
-        const mockClients = localStorage.getItem('mockClients');
-        const clients = mockClients ? JSON.parse(mockClients) : [];
-        clients.push(newClient);
-        localStorage.setItem('mockClients', JSON.stringify(clients));
-        
-        resolve({
-          data: newClient
-        });
-      }, 500);
-    });
-  }
-  
   return API.post('/client', clientData);
 };
 
 export const updateClient = (id, updatedClientData) => {
-  if (useMockData) {
-    // Simulate updating a client
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const mockClients = localStorage.getItem('mockClients');
-        if (!mockClients) {
-          return reject({ response: { data: { message: 'No clients found' } } });
-        }
-        
-        const clients = JSON.parse(mockClients);
-        const clientIndex = clients.findIndex(c => c._id === id);
-        
-        if (clientIndex === -1) {
-          return reject({ response: { data: { message: 'Client not found' } } });
-        }
-        
-        const updatedClient = {
-          ...clients[clientIndex],
-          ...updatedClientData,
-          _id: id, // Ensure ID remains the same
-          updatedAt: new Date().toISOString()
-        };
-        
-        clients[clientIndex] = updatedClient;
-        localStorage.setItem('mockClients', JSON.stringify(clients));
-        
-        resolve({ data: updatedClient });
-      }, 500);
-    });
-  }
-  
   return API.patch(`/client/${id}`, updatedClientData);
 };
 
 export const deleteClient = (id) => {
-  if (useMockData) {
-    // Simulate deleting a client
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const mockClients = localStorage.getItem('mockClients');
-        if (!mockClients) {
-          return reject({ response: { data: { message: 'No clients found' } } });
-        }
-        
-        const clients = JSON.parse(mockClients);
-        const clientIndex = clients.findIndex(c => c._id === id);
-        
-        if (clientIndex === -1) {
-          return reject({ response: { data: { message: 'Client not found' } } });
-        }
-        
-        clients.splice(clientIndex, 1);
-        localStorage.setItem('mockClients', JSON.stringify(clients));
-        
-        resolve({ data: { id, message: 'Client deleted successfully' } });
-      }, 500);
-    });
-  }
-  
   return API.delete(`/client/${id}`);
 };
 
 // User profiles
 export const getUser = () => API.get("/api/user/profile");
 export const getCompany = () => API.get("/api/company/profile");
-
-// Mock API function to get initial user data (will be replaced with actual API)
-export const getInitialUserData = async () => {
-  // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  // Return mock user data
-  return {
-    user: {
-      id: '12345',
-      email: 'user@example.com',
-      ownerName: 'Business Owner',
-      companyName: 'Business Name',
-      businessType: null, // This will be set via profile/admin settings
-      planType: 'pro',
-      accountCreated: new Date().toISOString(),
-      // Other user data as needed
-    }
-  };
-};

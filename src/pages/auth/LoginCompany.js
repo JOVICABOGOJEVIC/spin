@@ -86,13 +86,20 @@ const LoginCompany = () => {
   };
 
   return (
-    <div>
+    <div className="w-full">
       <HeaderSite />
-      <div className="flex justify-center items-center min-h-[calc(100vh-4rem)]">
-        <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-          <h2 className="text-2xl font-bold mb-6 text-center text-primary">
-            Log in as a Company
-          </h2>
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-[#E6F4FF] via-[#F0FFF4] to-[#E6F4FF] px-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 border-t-4 border-[#0077C8]">
+          {/* Header with Company Icon */}
+          <div className="text-center mb-8">
+            <div className="mx-auto w-20 h-20 bg-gradient-to-br from-[#0077C8] to-[#00B140] rounded-full flex items-center justify-center mb-4 shadow-lg">
+              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+            <h2 className="text-3xl font-bold text-gray-800 mb-2">Company Login</h2>
+            <p className="text-gray-600">Prijavite se na vaš kompanijski nalog</p>
+          </div>
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
             <div>
               <CustomInput
@@ -122,7 +129,11 @@ const LoginCompany = () => {
             </div>
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200 flex items-center justify-center"
+              className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-200 flex items-center justify-center ${
+                isSubmitting
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-[#0077C8] to-[#00B140] hover:from-[#005A9C] hover:to-[#008C33] transform hover:scale-[1.02] shadow-lg hover:shadow-xl'
+              }`}
               disabled={isSubmitting}
             >
               {isSubmitting ? (
@@ -134,15 +145,28 @@ const LoginCompany = () => {
                 'Login'
               )}
             </button>
-            <p className="text-center text-gray-600 mt-2">
-              Don't have an account?{" "}
-              <span
-                className="text-primary cursor-pointer hover:underline"
-                onClick={handleRegisterRedirect}
-              >
-                Register
-              </span>
-            </p>
+            <div className="mt-6 text-center space-y-3">
+              <p className="text-sm text-gray-600">
+                Don't have an account?{" "}
+                <span
+                  className="text-[#0077C8] hover:text-[#00B140] cursor-pointer hover:underline font-semibold"
+                  onClick={handleRegisterRedirect}
+                >
+                  Register
+                </span>
+              </p>
+              <div className="pt-4 border-t border-gray-200">
+                <p className="text-sm text-gray-600">
+                  Radnik ste?{" "}
+                  <span
+                    className="text-[#0077C8] hover:text-[#00B140] cursor-pointer hover:underline font-semibold"
+                    onClick={() => navigate("/auth?role=worker&type=login")}
+                  >
+                    Prijavite se ovde
+                  </span>
+                </p>
+              </div>
+            </div>
           </form>
         </div>
       </div>

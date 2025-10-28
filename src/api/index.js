@@ -21,9 +21,9 @@ api.interceptors.request.use((config) => {
 });
 
 // Spare Parts API calls
-export const fetchSpareParts = () => api.get('/sparePart');
-export const createSparePart = (sparePartData) => api.post('/sparePart', sparePartData);
-export const updateSparePart = (id, updatedSparePart) => api.patch(`/sparePart/${id}`, updatedSparePart);
-export const deleteSparePart = (id) => api.delete(`/sparePart/${id}`);
+export const fetchSpareParts = () => api.get('/api/sparePart');
+export const createSparePart = (sparePartData) => api.post('/api/sparePart', sparePartData);
+export const updateSparePart = (id, updatedSparePart) => api.patch(`/api/sparePart/${id}`, updatedSparePart);
+export const deleteSparePart = (id) => api.delete(`/api/sparePart/${id}`);
 
 export default api; 

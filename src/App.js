@@ -8,6 +8,7 @@ import Dashboard from './pages/admin/Dashboard';
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { setBusinessType, setUser } from './redux/features/authSlice';
+import { WebSocketProvider } from './contexts/WebSocketContext';
 
 function App() {
   const dispatch = useDispatch();
@@ -81,16 +82,18 @@ function App() {
   }
 
   return (
-    <div className="font-['Inter',_sans-serif]">
-      <BrowserRouter>
-        <ToastContainer autoClose={2000} />
-        <Routes>
-          <Route path='/' element={<Home />} />
-          <Route path='/auth/*' element={<AuthPage />} />
-          <Route path='/dashboard/*' element={<Dashboard />} />
-        </Routes>
-      </BrowserRouter>
-    </div>
+    <WebSocketProvider>
+      <div className="font-['Inter',_sans-serif]">
+        <BrowserRouter>
+          <ToastContainer autoClose={2000} />
+          <Routes>
+            <Route path='/' element={<Home />} />
+            <Route path='/auth/*' element={<AuthPage />} />
+            <Route path='/dashboard/*' element={<Dashboard />} />
+          </Routes>
+        </BrowserRouter>
+      </div>
+    </WebSocketProvider>
   );
 }
 

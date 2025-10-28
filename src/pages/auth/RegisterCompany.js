@@ -56,11 +56,13 @@ const RegisterCompany = () => {
     "Auto Mechanic",
     "Elevator Technician",
     "HVAC Technician",
-    "Carpenter",
     "Locksmith",
     "Tile Installer",
     "Painter",
-    "Facade Specialist",
+    "Carpet Cleaning",
+    "House Cleaning",
+    "Pest Control",
+    "Window Cleaning",
     "IT Technician",
     "Handyman"
   ];

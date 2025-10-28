@@ -29,14 +29,14 @@ export const getTeam = createAsyncThunk(
 
 export const createTeam = createAsyncThunk(
   'teams/createTeam',
-  async ({ teamData, navigate }, { rejectWithValue }) => {
+  async ({ teamData }, { rejectWithValue }) => {
     try {
       const { data } = await api.createTeam(teamData);
-      toast.success('Team created successfully');
+      toast.success('Tim je uspešno kreiran');
       return data;
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to create team');
-      return rejectWithValue(error.response.data);
+      toast.error(error.response?.data?.message || 'Greška pri kreiranju tima');
+      return rejectWithValue(error.response?.data || error.message);
     }
   }
 );
@@ -46,11 +46,11 @@ export const updateTeam = createAsyncThunk(
   async ({ id, updatedTeamData }, { rejectWithValue }) => {
     try {
       const { data } = await api.updateTeam(id, updatedTeamData);
-      toast.success('Team updated successfully');
+      toast.success('Tim je uspešno ažuriran');
       return data;
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to update team');
-      return rejectWithValue(error.response.data);
+      toast.error(error.response?.data?.message || 'Greška pri ažuriranju tima');
+      return rejectWithValue(error.response?.data || error.message);
     }
   }
 );
@@ -60,11 +60,11 @@ export const deleteTeam = createAsyncThunk(
   async ({ id }, { rejectWithValue }) => {
     try {
       await api.deleteTeam(id);
-      toast.success('Team deleted successfully');
+      toast.success('Tim je uspešno obrisan');
       return id;
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to delete team');
-      return rejectWithValue(error.response.data);
+      toast.error(error.response?.data?.message || 'Greška pri brisanju tima');
+      return rejectWithValue(error.response?.data || error.message);
     }
   }
 );

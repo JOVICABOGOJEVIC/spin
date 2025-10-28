@@ -28,6 +28,11 @@ export const login = createAsyncThunk("/auth/login", async({formData, navigate, 
         // Store the modified data
         localStorage.setItem("profile", JSON.stringify(userData));
         
+        // Set userType to 'company' for admin/company login
+        localStorage.setItem("userType", "company");
+        // Clear worker-specific data if it exists
+        localStorage.removeItem("workerPermissions");
+        
         if (response.data.result && response.data.result.businessType) {
             console.log("Setting business type in session:", response.data.result.businessType);
             sessionStorage.setItem('businessType', response.data.result.businessType);
@@ -213,7 +218,8 @@ const authSlice = createSlice({
         user: null,
         error: '',
         loading: false,
-        businessType: null
+        businessType: null,
+        userType: localStorage.getItem('userType') || 'company'
     },
     reducers: {
         setUser: (state, action) => {
@@ -225,17 +231,24 @@ const authSlice = createSlice({
                 state.businessType = action.payload.result.businessType;
             }
             
+            // Postavi userType iz localStorage
+            const userType = localStorage.getItem('userType') || 'company';
+            state.userType = userType;
+            
             // Postavi ili produži trajanje sesije
             localStorage.setItem("lastActive", new Date().toISOString());
         },
         setLogout: (state, action) => {
             state.user = null;
             state.businessType = null;
+            state.userType = 'company';
             
             // Očisti sva skladišta
             localStorage.removeItem('profile');
             localStorage.removeItem('token');
             localStorage.removeItem('lastActive');
+            localStorage.removeItem('userType');
+            localStorage.removeItem('workerPermissions');
             
             sessionStorage.removeItem('businessType');
             sessionStorage.clear();
@@ -275,6 +288,32 @@ const authSlice = createSlice({
                 
                 localStorage.setItem("profile", JSON.stringify(userData));
                 state.user = userData;
+                
+                // Check if this is a worker login (worker login already sets userType in localStorage)
+                const existingUserType = localStorage.getItem('userType');
+                const isWorkerLogin = existingUserType === 'worker' || 
+                                     action.payload?.userType === 'worker' ||
+                                     (userData.result?.firstName && userData.result?.lastName && !userData.result?.companyName);
+                
+                console.log('🔐 Auth Reducer: Processing login fulfilled');
+                console.log('  Existing userType:', existingUserType);
+                console.log('  Payload userType:', action.payload?.userType);
+                console.log('  Is worker login:', isWorkerLogin);
+                console.log('  Profile structure - firstName:', userData.result?.firstName, 'companyName:', userData.result?.companyName);
+                
+                if (isWorkerLogin) {
+                    // Worker login - keep worker type and permissions
+                    console.log('✅ Confirming worker login - preserving userType and permissions');
+                    localStorage.setItem("userType", "worker");
+                    state.userType = 'worker';
+                    // Don't remove workerPermissions - they were set by worker login
+                } else {
+                    // Company/admin login - set company type and clear worker data
+                    console.log('✅ Confirming company/admin login - setting userType to company');
+                    localStorage.setItem("userType", "company");
+                    localStorage.removeItem("workerPermissions");
+                    state.userType = 'company';
+                }
                 
                 if (userData.result && userData.result.businessType) {
                     state.businessType = userData.result.businessType;

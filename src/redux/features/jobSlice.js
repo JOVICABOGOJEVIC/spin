@@ -7,10 +7,17 @@ export const createJob = createAsyncThunk(
   "job/createJob",
   async ({ jobData }, { rejectWithValue }) => {
     try {
+      console.log('🎯 createJob thunk called with jobData:', jobData);
+      console.log('🎯 Current localStorage profile:', localStorage.getItem('profile'));
+      
       const response = await api.createJob(jobData);
+      console.log('✅ createJob API response:', response);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      console.error('❌ createJob API error:', error);
+      console.error('❌ Error status:', error.response?.status);
+      console.error('❌ Error response:', error.response?.data);
+      return rejectWithValue(error.response?.data || { message: 'Network error' });
     }
   }
 );
@@ -19,10 +26,13 @@ export const getJobs = createAsyncThunk(
   "job/getJobs",
   async (businessType, { rejectWithValue }) => {
     try {
+      console.log('getJobs thunk called with businessType:', businessType);
       const response = await api.getJobs(businessType);
+      console.log('getJobs API response:', response);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      console.error('getJobs API error:', error);
+      return rejectWithValue(error.response?.data || { message: 'Network error' });
     }
   }
 );
@@ -41,9 +51,9 @@ export const getJob = createAsyncThunk(
 
 export const updateJob = createAsyncThunk(
   "job/updateJob",
-  async ({ id, updatedJobData }, { rejectWithValue }) => {
+  async ({ id, jobData }, { rejectWithValue }) => {
     try {
-      const response = await api.updateJob(id, updatedJobData);
+      const response = await api.updateJob(id, jobData);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response.data);
@@ -63,91 +73,7 @@ export const deleteJob = createAsyncThunk(
   }
 );
 
-// Generate mock data for testing
-const generateMockJobs = (businessType) => {
-  const statuses = ['Received', 'Diagnosing', 'Waiting for Parts', 'In Repair', 'Completed', 'Delivered', 'Cancelled'];
-  const priorities = ['Low', 'Medium', 'High', 'Urgent'];
-  const clients = [
-    { name: 'Client 1', phone: '111-222-3333', address: '123 Main St' },
-    { name: 'Client 2', phone: '444-555-6666', address: '456 Oak Ave' },
-    { name: 'Client 3', phone: '777-888-9999', address: '789 Pine Blvd' }
-  ];
-  
-  let deviceTypes = ['Refrigerator', 'Washing Machine', 'Dryer', 'Dishwasher', 'Oven']; // Default for appliance tech
-  
-  switch (businessType) {
-    case 'Electrician':
-      deviceTypes = ['Electrical Panel', 'Wiring', 'Lighting', 'Outlets', 'Circuit Breaker'];
-      break;
-    case 'Plumber':
-      deviceTypes = ['Pipes', 'Faucets', 'Toilet', 'Sink', 'Drain'];
-      break;
-    case 'Auto Mechanic':
-      deviceTypes = ['Car', 'SUV', 'Truck', 'Van', 'Motorcycle'];
-      break;
-    case 'HVAC Technician':
-      deviceTypes = ['Air Conditioner', 'Heater', 'Furnace', 'Heat Pump', 'Ductwork'];
-      break;
-    case 'Elevator Technician':
-      deviceTypes = ['Passenger', 'Freight', 'Residential', 'Hydraulic', 'Traction'];
-      break;
-    case 'IT Technician':
-      deviceTypes = ['Desktop', 'Laptop', 'Server', 'Network', 'Printer'];
-      break;
-    default:
-      // Use default device types
-      break;
-  }
-  
-  const brands = ['Samsung', 'LG', 'Whirlpool', 'GE', 'Bosch', 'Maytag', 'KitchenAid', 'Frigidaire', 'Kenmore'];
-  
-  const mockJobs = [];
-  
-  for (let i = 0; i < 10; i++) {
-    const client = clients[Math.floor(Math.random() * clients.length)];
-    const isWarranty = Math.random() > 0.7;
-    const deviceType = deviceTypes[Math.floor(Math.random() * deviceTypes.length)];
-    const status = statuses[Math.floor(Math.random() * statuses.length)];
-    const priority = priorities[Math.floor(Math.random() * priorities.length)];
-    
-    const job = {
-      _id: `job-${i + 1}`,
-      clientName: client.name,
-      clientPhone: client.phone,
-      clientAddress: client.address,
-      deviceType: deviceType,
-      brand: brands[Math.floor(Math.random() * brands.length)],
-      model: `Model-${Math.floor(Math.random() * 1000)}`,
-      serialNumber: `SN-${Math.floor(Math.random() * 100000)}`,
-      issueDescription: `Problem with ${deviceType} that requires servicing`,
-      hasWarranty: isWarranty,
-      warrantyExpiration: isWarranty ? new Date(Date.now() + Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString() : null,
-      priority: priority,
-      status: status,
-      serviceDate: new Date(Date.now() + Math.floor(Math.random() * 14) * 24 * 60 * 60 * 1000).toISOString(),
-      assignedTo: ['Alex', 'Brian', 'Chris', 'David', 'Emma'][Math.floor(Math.random() * 5)],
-      createdAt: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString()
-    };
-    
-    mockJobs.push(job);
-  }
-  
-  return mockJobs;
-};
-
-// Load Mock Jobs
-export const loadMockJobs = createAsyncThunk(
-  "job/loadMockJobs",
-  async (businessType = "General", { rejectWithValue }) => {
-    try {
-      const mockJobs = generateMockJobs(businessType || "General");
-      return mockJobs;
-    } catch (error) {
-      console.error("Error generating mock jobs:", error);
-      return rejectWithValue(error.message || "Failed to generate mock jobs");
-    }
-  }
-);
+// No more mock data - using real API
 
 const jobSlice = createSlice({
   name: "job",

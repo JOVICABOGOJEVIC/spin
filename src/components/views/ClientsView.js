@@ -241,45 +241,45 @@ const ClientsView = () => {
   
   const renderTableView = () => {
     return (
-      <div className="overflow-x-auto rounded-lg shadow">
-        <table className="min-w-full bg-white">
+      <div className="overflow-x-auto rounded-lg shadow-lg">
+        <table className="min-w-full bg-gray-800">
           <thead>
-            <tr className="border-b">
-              <th className="px-6 py-3 text-left text-xs font-bold text-blue-600 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-blue-600 uppercase tracking-wider">Contact</th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-blue-600 uppercase tracking-wider">Address</th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-blue-600 uppercase tracking-wider">Description</th>
-              <th className="px-6 py-3 text-right text-xs font-bold text-blue-600 uppercase tracking-wider">Actions</th>
+            <tr className="border-b border-gray-700">
+              <th className="px-4 sm:px-6 py-3 text-left text-xs font-bold text-blue-400 uppercase tracking-wider">Name</th>
+              <th className="px-4 sm:px-6 py-3 text-left text-xs font-bold text-blue-400 uppercase tracking-wider">Contact</th>
+              <th className="px-4 sm:px-6 py-3 text-left text-xs font-bold text-blue-400 uppercase tracking-wider">Address</th>
+              <th className="px-4 sm:px-6 py-3 text-left text-xs font-bold text-blue-400 uppercase tracking-wider">Description</th>
+              <th className="px-4 sm:px-6 py-3 text-right text-xs font-bold text-blue-400 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredClients.map((client) => (
-              <tr key={client._id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{client.name}</div>
+              <tr key={client._id} className="hover:bg-gray-700 border-b border-gray-700 transition-colors">
+                <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-white">{client.name}</div>
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-4 sm:px-6 py-4">
                   <div className="space-y-2">
                     <a 
                       href={`tel:${client.phone}`}
-                      className="text-sm text-gray-900 hover:text-gray-700 flex items-center"
+                      className="text-sm text-gray-300 hover:text-white flex items-center transition-colors"
                     >
-                      <Phone size={14} className="mr-1 text-gray-500" />
+                      <Phone size={14} className="mr-1 text-gray-400" />
                       {client.phone}
                     </a>
                     {client.email && (
                       <a 
                         href={`mailto:${client.email}`}
-                        className="text-sm text-gray-900 hover:text-gray-700 flex items-center"
+                        className="text-sm text-gray-300 hover:text-white flex items-center transition-colors"
                       >
-                        <Mail size={14} className="mr-1 text-gray-500" />
+                        <Mail size={14} className="mr-1 text-gray-400" />
                         {client.email}
                       </a>
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900">
+                <td className="px-4 sm:px-6 py-4">
+                  <div className="text-sm text-gray-300">
                     {client.address?.street} {client.address?.number}
                     {!client.address?.isHouse && client.address?.floor && (
                       <span>, Floor {client.address.floor}</span>
@@ -289,21 +289,23 @@ const ClientsView = () => {
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900 max-w-xs truncate">
+                <td className="px-4 sm:px-6 py-4">
+                  <div className="text-sm text-gray-400 max-w-xs truncate">
                     {client.description || '-'}
                   </div>
                 </td>
-                <td className="px-6 py-4 text-right space-x-2">
+                <td className="px-4 sm:px-6 py-4 text-right space-x-2">
                   <button
                     onClick={() => handleEdit(client)}
-                    className="text-blue-600 hover:text-blue-900 mr-3"
+                    className="text-blue-400 hover:text-blue-300 mr-3 transition-colors"
+                    title="Edit Client"
                   >
                     <Pencil size={16} />
                   </button>
                   <button
                     onClick={() => handleDelete(client._id)}
-                    className="text-red-600 hover:text-red-900"
+                    className="text-red-400 hover:text-red-300 transition-colors"
+                    title="Delete Client"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -603,18 +605,22 @@ const ClientsView = () => {
   );
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">Clients</h2>
-        {!showForm && (
-          <button 
-            onClick={showAddForm}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center"
-          >
-            <UserPlus size={16} className="mr-2" />
-            Add New Client
-          </button>
-        )}
+    <div className="bg-gray-900 min-h-screen p-2 sm:p-4">
+      {/* Header */}
+      <div className="bg-gray-800 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6 shadow-lg">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl sm:text-2xl font-bold text-white">Clients</h2>
+          {!showForm && (
+            <button 
+              onClick={showAddForm}
+              className="flex items-center gap-2 bg-blue-600 text-white px-3 py-2 sm:px-4 sm:py-2 text-sm rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <UserPlus size={18} />
+              <span className="hidden sm:inline">Add New Client</span>
+              <span className="sm:hidden">Add</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {!showForm && (

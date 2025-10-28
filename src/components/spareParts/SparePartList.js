@@ -54,17 +54,17 @@ const SparePartList = () => {
 
   if (showForm) {
     return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="bg-gray-800 rounded-lg p-4 sm:p-6">
+        <div className="flex items-center justify-between mb-4">
           <button
             onClick={handleCloseForm}
-            className="flex items-center text-sm text-gray-600 hover:text-gray-900"
+            className="flex items-center text-sm text-gray-400 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-1" />
-            Back to List
+            Nazad na listu
           </button>
-          <h2 className="text-lg font-semibold">
-            {selectedSparePart ? 'Edit Spare Part' : 'Add New Spare Part'}
+          <h2 className="text-lg sm:text-xl font-bold text-white">
+            {selectedSparePart ? 'Izmeni rezervni deo' : 'Dodaj novi rezervni deo'}
           </h2>
         </div>
         <SparePartForm
@@ -77,15 +77,15 @@ const SparePartList = () => {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold text-white">Spare Parts</h2>
+    <div className="bg-gray-800 rounded-lg p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+        <h2 className="text-lg sm:text-xl font-bold text-white">Rezervni delovi</h2>
         <button
           onClick={handleAdd}
-          className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm sm:text-base"
         >
-          <Plus className="w-4 h-4 mr-1" />
-          Add Spare Part
+          <Plus className="w-4 h-4 mr-2" />
+          Dodaj rezervni deo
         </button>
       </div>
 

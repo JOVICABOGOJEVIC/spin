@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { createJob, updateJob, clearCurrentJob } from '../../redux/features/jobSlice';
+import { createJob, updateJob, clearCurrentJob, getJobs } from '../../redux/features/jobSlice';
 import { getWorkers } from '../../redux/features/workerSlice';
+import { createClientAsync, fetchClientsAsync } from '../../redux/features/clientSlice';
 import { toast } from 'react-toastify';
 import { getJobFormConfig, getJobFormInitialState } from '../../utils/formConfig';
 import { getBusinessType } from '../../utils/businessTypeUtils';
 import Select from 'react-select';
+import FieldRenderer from './job/FieldRenderer';
+import JobFormSection from './job/JobFormSection';
 import { getSpareParts, createSparePart } from '../../redux/features/sparePartSlice';
 import { COUNTRY_DATA } from '../../utils/countryData';
+import { checkJobOverlap, formatTimeSlot, addHoursToTime } from '../../utils/timeSlotUtils';
 
 // Phone prefixes mapping
 const COUNTRY_PREFIXES = {
@@ -22,6 +26,21 @@ const COUNTRY_PREFIXES = {
 const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className = '', isModal = false, selectedSlot = null }) => {
   const businessType = getBusinessType();
   const formConfig = getJobFormConfig(businessType);
+  
+  console.log('JobForm initialJobData:', initialJobData);
+  console.log('JobForm isEdit:', isEdit);
+  
+  // Transform initialJobData to ensure serviceDateTime is properly structured
+  const transformedInitialData = initialJobData ? {
+    ...initialJobData,
+    serviceDateTime: {
+      date: initialJobData.serviceDate ? new Date(initialJobData.serviceDate).toISOString().slice(0, 10) : selectedSlot?.date || '',
+      time: initialJobData.scheduledTime || selectedSlot?.time || '09:00',
+    }
+  } : {};
+  
+  console.log('JobForm transformedInitialData.serviceDateTime:', transformedInitialData.serviceDateTime);
+  
   const [jobData, setJobData] = useState({
     clientName: '',
     clientPhone: '',
@@ -35,7 +54,9 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
       date: selectedSlot?.date || '',
       time: selectedSlot?.time || '09:00',
     },
-    ...initialJobData,
+    status: 'draft', // Default status for new jobs
+    serviceLocation: 'OnSite',
+    ...transformedInitialData,
   });
   const [workerOptions, setWorkerOptions] = useState([]);
   const [sparePartsOptions, setSparePartsOptions] = useState([]);
@@ -57,6 +78,7 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
   const jobState = useSelector((state) => state.job);
   const currentJob = jobState ? jobState.currentJob : null;
   const { clients } = useSelector((state) => state.client || {});
+  const { jobs } = useSelector((state) => state.job || { jobs: [] });
   const { workers } = useSelector((state) => state.worker || { workers: [] });
   const { items: spareParts, loading: sparePartsLoading } = useSelector((state) => state.spareParts);
   const { user } = useSelector((state) => state.auth);
@@ -77,23 +99,44 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
   })) : [];
   
   useEffect(() => {
-    // Fetch workers when component mounts
+    console.log('🎯 JobForm: useEffect triggered - fetching workers and clients');
+    console.log('🎯 Current user from Redux:', user);
+    console.log('🎯 Current localStorage profile:', localStorage.getItem('profile'));
+    
+    // Fetch workers and clients when component mounts
     dispatch(getWorkers());
+    dispatch(fetchClientsAsync());
   }, [dispatch]);
   
   useEffect(() => {
-    if (isEdit && currentJob) {
+    // Use initialJobData if provided directly, otherwise use currentJob from Redux
+    const jobToEdit = initialJobData || currentJob;
+    
+    if (isEdit && jobToEdit) {
       // Format the dates for the input fields (YYYY-MM-DD)
-      const formattedServiceDate = currentJob.serviceDate ? new Date(currentJob.serviceDate).toISOString().slice(0, 10) : '';
+      const formattedServiceDate = jobToEdit.serviceDate ? new Date(jobToEdit.serviceDate).toISOString().slice(0, 10) : '';
+      const formattedServiceTime = jobToEdit.scheduledTime || '09:00';
       
       // Ensure phone number has correct prefix when editing
-      const phone = currentJob.clientPhone?.startsWith('+') ? 
-        currentJob.clientPhone : 
-        `+${phonePrefix}${currentJob.clientPhone?.replace(/^\+?[0-9]+/, '') || ''}`;
+      const phone = jobToEdit.clientPhone?.startsWith('+') ? 
+        jobToEdit.clientPhone : 
+        `+${phonePrefix}${jobToEdit.clientPhone?.replace(/^\+?[0-9]+/, '') || ''}`;
+      
+      console.log('Setting edit job data:', {
+        serviceDate: formattedServiceDate,
+        scheduledTime: formattedServiceTime,
+        serviceDateTime: {
+          date: formattedServiceDate,
+          time: formattedServiceTime
+        }
+      });
       
       setJobData({
-        ...currentJob,
-        serviceDate: formattedServiceDate,
+        ...jobToEdit,
+        serviceDateTime: {
+          date: formattedServiceDate,
+          time: formattedServiceTime
+        },
         clientPhone: phone
       });
     }
@@ -104,7 +147,7 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
         dispatch(clearCurrentJob());
       }
     };
-  }, [isEdit, currentJob, dispatch, phonePrefix]);
+  }, [isEdit, currentJob, initialJobData, dispatch, phonePrefix]);
   
   // Update worker options when workers change
   useEffect(() => {
@@ -130,11 +173,13 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
     if (spareParts && spareParts.length > 0) {
       const mappedOptions = spareParts.map(part => ({
         value: part._id,
-        label: `${part.name} - ${part.code} (Nabavna: ${part.purchasePrice}din, Prodajna: ${part.price}din, Porez: ${part.tax}%)`,
+        label: part.name, // Show only name without description
         price: part.price,
         purchasePrice: part.purchasePrice,
         tax: part.tax,
-        quantity: part.quantity
+        quantity: part.quantity,
+        name: part.name,
+        code: part.code
       }));
       setSparePartsOptions(mappedOptions);
     }
@@ -334,7 +379,7 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
           // Add as new entry to the job
           const newOption = {
             value: existingPart._id,
-            label: `${existingPart.name} - ${existingPart.code} (Nabavna: ${existingPart.purchasePrice}din, Prodajna: ${existingPart.price}din, Porez: ${existingPart.tax}%)`,
+            label: existingPart.name, // Show only name without description
             price: existingPart.price,
             purchasePrice: existingPart.purchasePrice,
             tax: existingPart.tax,
@@ -405,7 +450,7 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
       
       const newOption = {
         value: result._id,
-        label: `${result.name} - ${result.code} (Nabavna: ${result.purchasePrice}din, Prodajna: ${result.price}din, Porez: ${result.tax}%)`,
+        label: result.name, // Show only name without description
         price: result.price,
         purchasePrice: result.purchasePrice,
         tax: result.tax,
@@ -424,51 +469,172 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
     }
   };
   
-  const handleSubmit = (e) => {
+  // Function to check if client exists and create if needed
+  const handleClientCreation = async (clientData) => {
+    try {
+      // Check if client with this phone already exists
+      const existingClient = clients?.find(client => 
+        client.phone === clientData.phone || 
+        client.phone === clientData.phone.replace(/\s/g, '')
+      );
+
+      if (existingClient) {
+        toast.info(`Klijent "${existingClient.name}" već postoji u bazi`, {
+          autoClose: 3000
+        });
+        return existingClient;
+      }
+
+      // Client doesn't exist, create new one
+      const newClient = await dispatch(createClientAsync(clientData)).unwrap();
+      toast.success(`Novi klijent "${newClient.name}" je sačuvan u bazi`, {
+        autoClose: 3000
+      });
+      return newClient;
+    } catch (error) {
+      console.error('Error creating client:', error);
+      toast.warning('Posao je kreiran, ali klijent nije mogao biti sačuvan u bazi');
+      return null;
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     console.log('Submitting data:', jobData);
 
-    // Validate required fields
-    const requiredFields = Object.entries(formConfig)
-      .filter(([_, config]) => config.required)
-      .map(([fieldName]) => ({
-        name: fieldName,
-        label: formConfig[fieldName].label
-      }));
-
-    const missingFields = requiredFields
-      .filter(field => !jobData[field.name])
-      .map(field => field.label);
+    // No validation - all fields are optional
+    console.log('Submitting job data:', jobData);
     
-    if (missingFields.length > 0) {
-      toast.error(`Please fill in all required fields: ${missingFields.join(', ')}`);
-      return;
+    // Skip all validation and proceed directly to submission
+
+    // Convert clientAddress object to string
+    const addressString = jobData.clientAddress && typeof jobData.clientAddress === 'object' 
+      ? `${jobData.clientAddress.street || ''} ${jobData.clientAddress.number || ''} ${jobData.clientAddress.floor || ''} ${jobData.clientAddress.apartment || ''}`.trim()
+      : jobData.clientAddress || '';
+
+    // Convert usedSpareParts to array of strings (IDs only)
+    let sparePartsArray = [];
+    if (jobData.usedSpareParts && Array.isArray(jobData.usedSpareParts)) {
+      sparePartsArray = jobData.usedSpareParts.map(part => {
+        if (typeof part === 'string') {
+          return part;
+        } else if (part && part.value) {
+          return part.value;
+        } else if (part && part._id) {
+          return part._id;
+        }
+        return '';
+      }).filter(id => id !== '');
+    }
+
+    // Create date with correct timezone handling - only if date is provided
+    let serviceDateValue = null;
+    let scheduledTimeValue = null;
+    
+    if (jobData.serviceDateTime.date) {
+      // Create date at noon to avoid timezone issues
+      const [year, month, day] = jobData.serviceDateTime.date.split('-');
+      serviceDateValue = new Date(year, month - 1, day, 12, 0, 0);
+      // Only set time if date is set
+      scheduledTimeValue = jobData.serviceDateTime.time || null;
+    }
+
+    // Check for time slot overlap if date, time and duration are provided
+    if (serviceDateValue && scheduledTimeValue && jobData.estimatedDuration) {
+      const overlapCheck = checkJobOverlap(
+        {
+          serviceDate: serviceDateValue,
+          scheduledTime: scheduledTimeValue,
+          estimatedDuration: parseFloat(jobData.estimatedDuration),
+          assignedTo: jobData.assignedTo
+        },
+        jobs || [],
+        isEdit ? jobData._id : null
+      );
+
+      if (overlapCheck.hasOverlap) {
+        const overlappingJob = overlapCheck.overlappingJobs[0];
+        const endTime = addHoursToTime(scheduledTimeValue, parseFloat(jobData.estimatedDuration));
+        const overlappingEndTime = addHoursToTime(overlappingJob.scheduledTime, overlappingJob.estimatedDuration);
+        
+        toast.warning(
+          `⚠️ Preklapanje vremena!\n\nOvaj posao (${formatTimeSlot(scheduledTimeValue, endTime)}) se preklapa sa:\n"${overlappingJob.clientName}" (${formatTimeSlot(overlappingJob.scheduledTime, overlappingEndTime)})\n\nDa li želite da nastavite?`,
+          {
+            autoClose: 8000,
+            position: "top-center"
+          }
+        );
+        
+        // Ask for confirmation
+        const confirmed = window.confirm(
+          `⚠️ UPOZORENJE: Preklapanje vremena!\n\n` +
+          `Novi posao: ${scheduledTimeValue} - ${endTime} (${jobData.estimatedDuration}h)\n` +
+          `Postojeći posao: "${overlappingJob.clientName}" ${overlappingJob.scheduledTime} - ${overlappingEndTime} (${overlappingJob.estimatedDuration}h)\n\n` +
+          `Da li želite da nastavite sa kreiranjem posla?`
+        );
+        
+        if (!confirmed) {
+          return; // Cancel job creation
+        }
+      }
+    }
+
+    // Automatically create/check client if phone number is provided
+    if (!isEdit && jobData.clientPhone && jobData.clientPhone !== 'No phone') {
+      const clientDataToSave = {
+        name: jobData.clientName || 'Unknown Client',
+        phone: jobData.clientPhone,
+        email: jobData.clientEmail && jobData.clientEmail !== 'no-email@example.com' ? jobData.clientEmail : undefined,
+        address: jobData.clientAddress && typeof jobData.clientAddress === 'object' ? {
+          street: jobData.clientAddress.street || '',
+          number: jobData.clientAddress.number || '',
+          floor: jobData.clientAddress.floor || undefined,
+          apartment: jobData.clientAddress.apartment || undefined,
+          isHouse: false,
+          countryCode: countryCode
+        } : undefined,
+        description: undefined // Don't copy job description to client
+      };
+
+      // Wait for client creation/check before proceeding
+      await handleClientCreation(clientDataToSave);
     }
 
     const transformedData = {
-      clientName: jobData.clientName,
-      clientPhone: jobData.clientPhone,
-      clientEmail: jobData.clientEmail,
-      clientAddress: jobData.clientAddress,
-      deviceType: jobData.deviceType,
-      deviceBrand: jobData.deviceBrand,
-      deviceModel: jobData.deviceModel,
-      deviceSerialNumber: jobData.deviceSerialNumber,
-      issueDescription: jobData.issueDescription,
-      priority: jobData.priority || 'medium',
-      warranty: jobData.warranty,
-      serviceDate: new Date(jobData.serviceDateTime.date).toISOString(),
-      scheduledTime: jobData.serviceDateTime.time,
-      assignedTo: jobData.assignedTo,
-      usedSpareParts: jobData.usedSpareParts || [],
-      status: 'pending'
+      clientName: jobData.clientName || 'Unknown Client',
+      clientPhone: jobData.clientPhone || 'No phone',
+      clientEmail: jobData.clientEmail || 'no-email@example.com',
+      clientAddress: addressString,
+      serviceLocation: jobData.serviceLocation || 'OnSite',
+      deviceType: jobData.deviceType || 'Unknown Device',
+      deviceBrand: jobData.deviceBrand || 'Unknown Brand',
+      deviceModel: jobData.deviceModel || 'Unknown Model',
+      deviceSerialNumber: jobData.deviceSerialNumber || 'N/A',
+      issueDescription: jobData.issueDescription || 'No description provided',
+      priority: jobData.priority ? jobData.priority.charAt(0).toUpperCase() + jobData.priority.slice(1).toLowerCase() : 'Medium',
+      warranty: jobData.warranty || false,
+      estimatedDuration: jobData.estimatedDuration ? parseFloat(jobData.estimatedDuration) : undefined,
+      assignedTo: jobData.assignedTo || 'Unassigned',
+      usedSpareParts: sparePartsArray,
+      status: 'In Pending', // Use valid enum value
+      businessType: businessType,
+      creator: user?.result?.email || user?.result?.name || 'Unknown'
     };
+    
+    // Only add serviceDate and scheduledTime if they exist
+    if (serviceDateValue) {
+      transformedData.serviceDate = serviceDateValue;
+    }
+    if (scheduledTimeValue) {
+      transformedData.scheduledTime = scheduledTimeValue;
+    }
 
-    console.log('Transformed data:', transformedData);
+    console.log('🎯 JobForm: Transformed data:', transformedData);
+    console.log('🎯 JobForm: Status being sent:', transformedData.status);
 
     try {
       if (isEdit) {
-        dispatch(updateJob({ id: jobData._id, updatedJobData: transformedData }));
+        dispatch(updateJob({ id: jobData._id, jobData: transformedData }));
         toast.success('Job updated successfully');
       } else {
         dispatch(createJob({ jobData: transformedData }));
@@ -481,108 +647,24 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
     }
   };
   
-  const renderAddressFields = () => {
-    return (
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-200 mb-1">
-            Street Address *
-          </label>
-          <input
-            type="text"
-            value={jobData.clientAddress?.street || ''}
-            onChange={(e) => handleInputChange('clientAddress', { street: e.target.value })}
-            className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 px-3"
-            placeholder="Enter street name"
-            required
-          />
-        </div>
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-200 mb-1">
-              Number
-            </label>
-            <input
-              type="text"
-              value={jobData.clientAddress?.number || ''}
-              onChange={(e) => handleInputChange('clientAddress', { number: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 px-3"
-              placeholder="No."
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-200 mb-1">
-              Floor
-            </label>
-            <input
-              type="text"
-              value={jobData.clientAddress?.floor || ''}
-              onChange={(e) => handleInputChange('clientAddress', { floor: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 px-3"
-              placeholder="Floor"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-200 mb-1">
-              Apartment
-            </label>
-            <input
-              type="text"
-              value={jobData.clientAddress?.apartment || ''}
-              onChange={(e) => handleInputChange('clientAddress', { apartment: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 px-3"
-              placeholder="Apt."
-            />
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderDateTimeField = () => {
-    return (
-      <div className="grid grid-cols-2 gap-4">
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-200 mb-1">
-            Service Date *
-          </label>
-          <input
-            type="date"
-            value={jobData.serviceDateTime?.date || ''}
-            onChange={(e) => handleInputChange('serviceDateTime', { date: e.target.value })}
-            className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 px-3"
-            required
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-200 mb-1">
-            Service Time *
-          </label>
-          <input
-            type="time"
-            value={jobData.serviceDateTime?.time || ''}
-            onChange={(e) => handleInputChange('serviceDateTime', { time: e.target.value })}
-            className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 px-3"
-            required
-          />
-        </div>
-      </div>
-    );
-  };
+  const renderAddressFields = () => null;
+  const renderDateTimeField = () => null;
+  const renderServiceLocation = () => null;
 
   // Update sections structure
   const sections = {
     clientInfo: {
-      title: 'Client Information',
+      title: 'Client Info',
       fields: [
-        'clientName', 
-        'clientPhone', 
+        'clientName',
+        'clientPhone',
+        'serviceLocation',
         'clientAddress',
         'clientEmail'
       ]
     },
     deviceInfo: {
-      title: 'Device Information',
+      title: 'Device Info',
       fields: [
         'deviceType', 
         'deviceBrand', 
@@ -591,20 +673,23 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
       ]
     },
     serviceInfo: {
-      title: 'Service Information',
+      title: 'Service Info',
       fields: [
         'serviceType',
         'serviceDateTime',
+        'isEmergency',
+        'preferredTimeSlot',
         'assignedTo',
-        'usedSpareParts',
-        'issueDescription'
+        'usedSpareParts'
       ]
     },
     additionalInfo: {
-      title: 'Additional Information',
+      title: 'Additional Info',
       fields: [
+        'issueDescription',
         'priority',
-        'warranty'
+        'warranty',
+        'estimatedDuration'
       ]
     }
   };
@@ -612,12 +697,22 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
   // Update input class for smaller size
   const inputClass = "mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-1.5 px-2";
 
+  // Determine if a field should be visible for current config/state
+  const isFieldVisible = (fieldName) => {
+    if (!formConfig[fieldName]) return false;
+    if (fieldName === 'clientAddress' && jobData.serviceLocation !== 'OnSite') return false;
+    return true;
+  };
+
   const renderField = (fieldName, fieldConfig) => {
+    if (!fieldConfig) {
+      return null;
+    }
     if (fieldName === 'clientPhone') {
       return (
         <div key={fieldName} className="relative suggestions-container mb-3">
           <label className="block text-sm font-medium text-gray-200 mb-1">
-            {fieldConfig.label} {fieldConfig.required && '*'}
+            {fieldConfig.label}
           </label>
           <div className="flex items-center gap-2">
             <div className="relative">
@@ -746,154 +841,22 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
       );
     }
 
-    if (fieldName === 'clientAddress') {
-      return renderAddressFields();
-    }
-
-    if (fieldName === 'serviceDateTime') {
-      return renderDateTimeField();
-    }
-
-    if (fieldName === 'assignedTo') {
-      return (
-        <div key={fieldName} className="mb-3">
-          <label className="block text-sm font-medium text-gray-200 mb-1">
-            Assigned To
-          </label>
-          <Select
-            value={workerOptions.find(opt => opt.value === jobData.assignedTo)}
-            onChange={(selected) => handleSelectChange(selected, { name: 'assignedTo' })}
-            options={workerOptions}
-            className="react-select-container"
-            classNamePrefix="react-select"
-            placeholder="Select worker"
-            isClearable
-            styles={{
-              control: (base) => ({
-                ...base,
-                minHeight: '32px',
-                height: '32px',
-                backgroundColor: '#374151',
-                borderColor: '#4B5563',
-                '&:hover': {
-                  borderColor: '#6B7280'
-                }
-              }),
-              menu: (base) => ({
-                ...base,
-                backgroundColor: '#374151'
-              }),
-              option: (base, state) => ({
-                ...base,
-                backgroundColor: state.isFocused ? '#4B5563' : '#374151',
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: '#4B5563'
-                }
-              }),
-              singleValue: (base) => ({
-                ...base,
-                color: 'white'
-              }),
-              input: (base) => ({
-                ...base,
-                color: 'white'
-              }),
-              placeholder: (base) => ({
-                ...base,
-                color: '#9CA3AF'
-              })
-            }}
-          />
-        </div>
-      );
-    }
-
-    if (fieldName === 'usedSpareParts') {
-      return (
-        <div key={fieldName} className="mb-4">
-          <label className="block text-sm font-medium text-gray-200 mb-1">
-            Used Spare Parts
-          </label>
-          <Select
-            value={jobData.usedSpareParts}
-            onChange={handleSparePartsChange}
-            options={sparePartsOptions}
-            isMulti
-            className="react-select-container"
-            classNamePrefix="react-select"
-            placeholder="Select spare parts"
-            styles={{
-              control: (base) => ({
-                ...base,
-                backgroundColor: '#374151',
-                borderColor: '#4B5563',
-                '&:hover': {
-                  borderColor: '#6B7280'
-                }
-              }),
-              menu: (base) => ({
-                ...base,
-                backgroundColor: '#374151'
-              }),
-              option: (base, state) => ({
-                ...base,
-                backgroundColor: state.isFocused ? '#4B5563' : '#374151',
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: '#4B5563'
-                }
-              }),
-              multiValue: (base) => ({
-                ...base,
-                backgroundColor: '#4B5563'
-              }),
-              multiValueLabel: (base) => ({
-                ...base,
-                color: 'white'
-              }),
-              multiValueRemove: (base) => ({
-                ...base,
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: '#6B7280',
-                  color: 'white'
-                }
-              }),
-              input: (base) => ({
-                ...base,
-                color: 'white'
-              }),
-              placeholder: (base) => ({
-                ...base,
-                color: '#9CA3AF'
-              })
-            }}
-          />
-          <button
-            type="button"
-            onClick={handleQuickAddSparePart}
-            className="mt-2 text-sm text-blue-500 hover:text-blue-400"
-          >
-            + Quick Add Spare Part
-          </button>
-        </div>
-      );
-    }
-
     return (
-      <div key={fieldName} className="mb-3">
-        <label className="block text-sm font-medium text-gray-200 mb-1">
-          {fieldConfig?.label || fieldName} {fieldConfig?.required && '*'}
-        </label>
-        <input
-          type={fieldConfig?.type || 'text'}
-          name={fieldName}
-          value={jobData[fieldName] || ''}
-          onChange={handleClientFieldChange}
-          className={inputClass}
-          placeholder={fieldConfig?.placeholder}
-          required={fieldConfig?.required}
+      <div key={fieldName}>
+        <FieldRenderer
+          fieldName={fieldName}
+          fieldConfig={fieldConfig}
+          value={fieldName === 'clientAddress' ? jobData.clientAddress : jobData[fieldName]}
+          onChange={(name, val) => {
+            if (name === 'clientAddress' || name === 'serviceDateTime') return handleInputChange(name, val);
+            if (name === 'usedSpareParts') return handleSparePartsChange(val);
+            setJobData(prev => ({ ...prev, [name]: val }));
+          }}
+          inputClass={inputClass}
+          workerOptions={workerOptions}
+          sparePartsOptions={sparePartsOptions}
+          serviceLocation={jobData.serviceLocation}
+          onQuickAddSparePart={handleQuickAddSparePart}
         />
       </div>
     );
@@ -915,12 +878,23 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
       {/* Form sections in horizontal row - update to 4 columns */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         {Object.entries(sections).map(([sectionKey, section]) => (
-          <div key={sectionKey} className="bg-gray-800 p-4 rounded-lg">
-            <h3 className="text-lg font-medium text-white mb-4">{section.title}</h3>
-            <div className="space-y-3">
-              {section.fields.map(fieldName => renderField(fieldName, formConfig[fieldName]))}
-            </div>
-          </div>
+          <JobFormSection
+            key={sectionKey}
+            title={section.title}
+            fields={section.fields}
+            formConfig={formConfig}
+            jobData={jobData}
+            inputClass={inputClass}
+            workerOptions={workerOptions}
+            sparePartsOptions={sparePartsOptions}
+            serviceLocation={jobData.serviceLocation}
+            onChange={(name, val) => {
+              if (name === 'clientAddress' || name === 'serviceDateTime') return handleInputChange(name, val);
+              if (name === 'usedSpareParts') return handleSparePartsChange(val);
+              setJobData(prev => ({ ...prev, [name]: val }));
+            }}
+            onQuickAddSparePart={handleQuickAddSparePart}
+          />
         ))}
       </div>
       
@@ -932,6 +906,17 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
           className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 rounded-md hover:bg-gray-600"
         >
           Cancel
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setJobData(prev => ({ ...prev, status: 'draft' }));
+            handleSubmit({ preventDefault: () => {} });
+          }}
+          className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-600 rounded-md hover:bg-gray-500"
+          disabled={jobState.loading}
+        >
+          {jobState.loading ? 'Saving...' : 'Save as Draft'}
         </button>
         <button
           type="submit"

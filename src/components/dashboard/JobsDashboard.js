@@ -1,24 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { loadDashboardMetrics } from '../../actions/dashboardActions';
-import { loadMockJobs } from '../../redux/features/jobSlice';
+import { getJobs } from '../../redux/features/jobSlice';
 import { getBusinessType } from '../../utils/businessTypeUtils';
 import CalendarView from './CalendarView';
 import JobsManagementView from './JobsManagementView';
+import JobSchedulingDashboard from './JobSchedulingDashboard';
 import ComparativeMetrics from './ComparativeMetrics';
 
 const JobsDashboard = () => {
   const dispatch = useDispatch();
-  const [activeTab, setActiveTab] = useState('calendar');
+  const [activeTab, setActiveTab] = useState('scheduling');
   const businessType = getBusinessType();
 
   useEffect(() => {
     // Load dashboard metrics when component mounts
     dispatch(loadDashboardMetrics());
     
-    // Load mock jobs data for the calendar and job list
+    // Load jobs when component mounts (for all tabs)
     if (businessType) {
-      dispatch(loadMockJobs(businessType));
+      dispatch(getJobs(businessType));
     }
   }, [dispatch, businessType]);
 
@@ -41,6 +42,12 @@ const JobsDashboard = () => {
       {/* Tabs at the very top */}
       <div className="flex space-x-1 mb-2 border-b border-gray-700">
         <TabButton 
+          value="scheduling" 
+          label="Job Scheduling" 
+          current={activeTab} 
+          onClick={setActiveTab}
+        />
+        <TabButton 
           value="calendar" 
           label="Calendar View" 
           current={activeTab} 
@@ -54,15 +61,16 @@ const JobsDashboard = () => {
         />
       </div>
 
-      {/* Main Content */}
-      <div className="h-[calc(100vh-120px)] overflow-y-auto scrollbar-hide">
-        <div className="bg-gray-900">
+      {/* Main Content - Mobile Responsive */}
+      <div className="h-[calc(100vh-120px)] overflow-y-auto scrollbar-hide pb-20 sm:pb-4">
+        <div className="bg-gray-900 mb-4">
+          {activeTab === 'scheduling' && <JobSchedulingDashboard />}
           {activeTab === 'calendar' && <CalendarView />}
           {activeTab === 'list' && <JobsManagementView />}
         </div>
         
         {/* Comparative Metrics Section */}
-        <div className="bg-gray-900">
+        <div className="bg-gray-900 mt-4">
           <ComparativeMetrics />
         </div>
       </div>

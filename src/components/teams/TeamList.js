@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Plus, Pencil, Trash2, Users } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { getTeams, deleteTeam } from '../../redux/actions/teamActions';
-import { getWorkers } from '../../redux/actions/workerActions';
+import { getTeams, deleteTeam } from '../../redux/features/teamSlice';
+import { getWorkers } from '../../redux/features/workerSlice';
 import TeamForm from './TeamForm';
-import LoadingSpinner from '../shared/LoadingSpinner';
 
 const TeamList = () => {
   const dispatch = useDispatch();
@@ -13,8 +12,8 @@ const TeamList = () => {
   const [isEdit, setIsEdit] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
 
-  const { teams, loading } = useSelector(state => state.team);
-  const { workers } = useSelector(state => state.worker);
+  const { teams, loading } = useSelector(state => state.team || { teams: [], loading: false });
+  const { workers } = useSelector(state => state.worker || { workers: [] });
 
   useEffect(() => {
     dispatch(getTeams());
@@ -36,97 +35,155 @@ const TeamList = () => {
   const handleDelete = async (teamId) => {
     if (window.confirm('Da li ste sigurni da želite da obrišete ovaj tim?')) {
       try {
-        await dispatch(deleteTeam(teamId));
+        await dispatch(deleteTeam({ id: teamId })).unwrap();
         toast.success('Tim je uspešno obrisan');
       } catch (error) {
-        toast.error(error.response?.data?.message || 'Greška pri brisanju tima');
+        toast.error(error?.message || 'Greška pri brisanju tima');
       }
     }
   };
 
   const getWorkerNames = (workerIds) => {
+    if (!workerIds || !Array.isArray(workerIds)) return 'Nema dodeljenih radnika';
     return workerIds
-      .map(id => workers.find(w => w._id === id))
-      .filter(worker => worker)
-      .map(worker => worker.name)
-      .join(', ');
+      .map(id => {
+        const worker = workers.find(w => w._id === id);
+        return worker ? `${worker.firstName} ${worker.lastName}` : null;
+      })
+      .filter(name => name)
+      .join(', ') || 'Nema dodeljenih radnika';
   };
 
   if (loading) {
-    return <LoadingSpinner />;
+    return (
+      <div className="bg-gray-900 min-h-screen p-2 sm:p-4">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!teams || teams.length === 0) {
+    return (
+      <div className="bg-gray-900 min-h-screen p-2 sm:p-4">
+        {/* Header */}
+        <div className="bg-gray-800 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6 shadow-lg">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl sm:text-2xl font-bold text-white">Timovi</h2>
+            <button
+              onClick={handleAdd}
+              className="flex items-center gap-2 bg-blue-600 text-white px-3 py-2 sm:px-4 sm:py-2 text-sm rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus size={18} /> 
+              <span className="hidden sm:inline">Dodaj tim</span>
+              <span className="sm:hidden">Dodaj</span>
+            </button>
+          </div>
+        </div>
+        
+        <div className="bg-gray-800 rounded-lg p-6 sm:p-8 text-center text-gray-400 shadow-lg">
+          Nema timova. Dodajte svoj prvi tim da počnete.
+        </div>
+        
+        {showModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-2 sm:p-4">
+            <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <TeamForm
+                isEdit={isEdit}
+                team={selectedTeam}
+                onClose={() => setShowModal(false)}
+                availableWorkers={workers}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-xl font-semibold text-white">Timovi</h1>
-        <button
-          onClick={handleAdd}
-          className="flex items-center px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Dodaj tim
-        </button>
+    <div className="bg-gray-900 min-h-screen p-2 sm:p-4">
+      {/* Header */}
+      <div className="bg-gray-800 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6 shadow-lg">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl sm:text-2xl font-bold text-white">Timovi</h2>
+          <button
+            onClick={handleAdd}
+            className="flex items-center gap-2 bg-blue-600 text-white px-3 py-2 sm:px-4 sm:py-2 text-sm rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus size={18} /> 
+            <span className="hidden sm:inline">Dodaj tim</span>
+            <span className="sm:hidden">Dodaj</span>
+          </button>
+        </div>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      
+      {/* Team Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {teams.map(team => (
-          <div key={team._id} className="bg-gray-800 rounded-lg shadow-md p-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-lg font-medium text-white">{team.name}</h3>
-                <p className="text-gray-400 text-sm mt-1">{team.description}</p>
+          <div key={team._id} className="bg-gray-800 p-3 sm:p-4 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
+            <div className="flex justify-between items-start mb-2 sm:mb-3">
+              <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-lg flex-shrink-0">
+                  <Users size={20} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-sm sm:text-base text-white truncate">{team.name}</h3>
+                  {team.description && (
+                    <p className="text-xs sm:text-sm text-gray-400 truncate">{team.description}</p>
+                  )}
+                </div>
               </div>
-              <div className="flex space-x-2">
+              <div className="flex gap-1 sm:gap-2 flex-shrink-0 ml-2">
                 <button
                   onClick={() => handleEdit(team)}
-                  className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                  className="p-1.5 sm:p-2 text-blue-400 hover:text-blue-300 hover:bg-gray-700 rounded transition-colors"
+                  title="Izmeni tim"
                 >
-                  <Pencil className="w-4 h-4" />
+                  <Pencil size={16} />
                 </button>
                 <button
                   onClick={() => handleDelete(team._id)}
-                  className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                  className="p-1.5 sm:p-2 text-red-400 hover:text-red-300 hover:bg-gray-700 rounded transition-colors"
+                  title="Obriši tim"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 size={16} />
                 </button>
               </div>
             </div>
-
-            <div className="mt-4">
-              <div className="flex items-center text-gray-400 text-sm">
-                <Users className="w-4 h-4 mr-2" />
-                <span>Članovi tima:</span>
+            
+            <div className="text-xs sm:text-sm space-y-1 border-t border-gray-700 pt-2 sm:pt-3">
+              <div className="flex items-center text-gray-300">
+                <Users className="w-4 h-4 mr-2 flex-shrink-0" />
+                <span className="text-gray-400 mr-2">Članovi:</span>
+                <span className="truncate">{getWorkerNames(team.members || team.workers)}</span>
               </div>
-              <p className="text-sm text-white mt-1">
-                {team.workers?.length > 0 
-                  ? getWorkerNames(team.workers)
-                  : 'Nema dodeljenih radnika'}
-              </p>
-            </div>
-
-            <div className="mt-4 pt-4 border-t border-gray-700">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-400">Status:</span>
-                <span className={`px-2 py-1 rounded ${team.isActive ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                  {team.isActive ? 'Aktivan' : 'Neaktivan'}
+              <div className="mt-2">
+                <span className={`px-2 py-1 rounded text-xs ${team.active !== false ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
+                  {team.active !== false ? 'Aktivan' : 'Neaktivan'}
                 </span>
               </div>
             </div>
           </div>
         ))}
       </div>
-
+      
+      {/* Modal */}
       {showModal && (
-        <TeamForm
-          isEdit={isEdit}
-          team={selectedTeam}
-          onClose={() => setShowModal(false)}
-          availableWorkers={workers}
-        />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-2 sm:p-4">
+          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <TeamForm
+              isEdit={isEdit}
+              team={selectedTeam}
+              onClose={() => setShowModal(false)}
+              availableWorkers={workers}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
 };
 
-export default TeamList; 
+export default TeamList;

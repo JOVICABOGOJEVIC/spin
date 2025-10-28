@@ -486,6 +486,21 @@ const AdminLayout = ({ children }) => {
                 <Layout className="h-4 w-4 mr-2" />
                 Theme
               </Link>
+              <Link 
+                to="/dashboard/user-management" 
+                className="flex items-center py-2 px-4 rounded transition duration-200"
+                style={{
+                  backgroundColor: isLinkActive('/dashboard/user-management') ? 'var(--nav-active-bg)' : 'transparent',
+                  color: isLinkActive('/dashboard/user-management') ? 'var(--nav-active-text)' : 'var(--nav-text)',
+                  ':hover': {
+                    backgroundColor: 'var(--nav-bg-hover)',
+                    color: 'var(--nav-text-hover)'
+                  }
+                }}
+              >
+                <User className="h-4 w-4 mr-2" />
+                User Management
+              </Link>
               <button 
                 onClick={handleLogout}
                 className="flex items-center w-full text-left py-2 px-4 rounded text-white/70 hover:bg-white/10 hover:text-white transition duration-200"

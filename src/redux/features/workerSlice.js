@@ -6,9 +6,16 @@ export const getWorkers = createAsyncThunk(
   'workers/getWorkers',
   async (_, { rejectWithValue }) => {
     try {
+      console.log('🔍 getWorkers: Starting to fetch workers');
+      console.log('🔍 Current localStorage profile:', localStorage.getItem('profile'));
+      
       const { data } = await api.fetchWorkers();
+      console.log('✅ getWorkers: Successfully fetched workers:', data);
       return data;
     } catch (error) {
+      console.error('❌ getWorkers: Error fetching workers:', error);
+      console.error('❌ Error status:', error.response?.status);
+      console.error('❌ Error response:', error.response?.data);
       return rejectWithValue(error.response?.data?.message || 'Error fetching workers');
     }
   }

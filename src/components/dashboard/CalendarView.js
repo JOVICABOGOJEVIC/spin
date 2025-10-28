@@ -37,9 +37,9 @@ const CalendarView = () => {
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
   
-  // Group jobs by date for efficient rendering
+  // Group jobs by date for efficient rendering (exclude completed jobs)
   const jobsByDate = {};
-  jobs.forEach(job => {
+  jobs.filter(job => job.status !== 'Completed').forEach(job => {
     const dateKey = moment(job.serviceDate).format('YYYY-MM-DD');
     if (!jobsByDate[dateKey]) {
       jobsByDate[dateKey] = [];

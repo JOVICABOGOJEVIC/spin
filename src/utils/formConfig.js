@@ -128,7 +128,20 @@ export const getJobFormConfig = (businessType) => {
       label: 'Issue Description',
       placeholder: 'Describe the issue',
       type: 'textarea',
-      rows: 3
+      rows: 4,
+      className: 'text-xs'
+    },
+
+    // Service location toggle
+    serviceLocation: {
+      required: true,
+      label: 'Service Location',
+      placeholder: 'Select location',
+      type: 'select',
+      options: [
+        { value: 'OnSite', label: 'On site address' },
+        { value: 'InWorkshop', label: 'Service workshop' }
+      ]
     },
 
     // Section 4: Additional Details
@@ -136,6 +149,12 @@ export const getJobFormConfig = (businessType) => {
       required: true,
       label: 'Service Date',
       type: 'datetime-local',
+      placeholder: 'Select service date and time'
+    },
+    serviceDateTime: {
+      required: false,
+      label: 'Service Date & Time',
+      type: 'datetime',
       placeholder: 'Select service date and time'
     },
     assignedTo: {
@@ -168,6 +187,30 @@ export const getJobFormConfig = (businessType) => {
       label: 'Warranty End Date',
       type: 'date',
       placeholder: 'Select warranty end date'
+    },
+    estimatedDuration: {
+      required: false,
+      label: 'Estimated Duration',
+      placeholder: 'Select estimated repair time',
+      type: 'select',
+      options: [
+        { value: '0.5', label: '0.5h (30 min)' },
+        { value: '1', label: '1h' },
+        { value: '1.5', label: '1.5h' },
+        { value: '2', label: '2h' },
+        { value: '2.5', label: '2.5h' },
+        { value: '3', label: '3h' },
+        { value: '3.5', label: '3.5h' },
+        { value: '4', label: '4h' },
+        { value: '4.5', label: '4.5h' },
+        { value: '5', label: '5h' },
+        { value: '5.5', label: '5.5h' },
+        { value: '6', label: '6h' },
+        { value: '6.5', label: '6.5h' },
+        { value: '7', label: '7h' },
+        { value: '7.5', label: '7.5h' },
+        { value: '8', label: '8h' }
+      ]
     }
   };
   
@@ -325,6 +368,27 @@ export const getJobFormConfig = (businessType) => {
           type: 'datetime-local'
         },
 
+        isEmergency: {
+          required: false,
+          label: 'Emergency',
+          type: 'select',
+          options: [
+            { value: 'no', label: 'No' },
+            { value: 'yes', label: 'Yes' }
+          ]
+        },
+
+        preferredTimeSlot: {
+          required: false,
+          label: 'Preferred Time',
+          type: 'select',
+          options: [
+            { value: 'morning', label: 'Morning (08-12)' },
+            { value: 'afternoon', label: 'Afternoon (12-16)' },
+            { value: 'evening', label: 'Evening (16-20)' }
+          ]
+        },
+
         estimatedDuration: {
           required: false,
           label: 'Estimated Duration',
@@ -368,184 +432,60 @@ export const getJobFormConfig = (businessType) => {
       return electricianConfig;
       
     case 'Plumber':
-      const plumberConfig = {
+      return {
         // Client Information Section
-        clientName: {
-          ...baseConfig.clientName,
-          required: false
-        },
-        clientPhone: {
-          ...baseConfig.clientPhone,
-          required: false,
-          pattern: '[0-9]*',
-          maxLength: 9,
-          minLength: 6,
-          usePrefix: true
-        },
-        clientEmail: {
-          ...baseConfig.clientEmail,
-          required: false
-        },
-        clientAddress: {
-          ...baseConfig.clientAddress,
-          required: false
-        },
+        clientName: { ...baseConfig.clientName, required: true },
+        clientPhone: { ...baseConfig.clientPhone, required: true },
+        clientEmail: baseConfig.clientEmail,
+        clientAddress: { ...baseConfig.clientAddress, required: true },
+        serviceLocation: baseConfig.serviceLocation,
+        serviceDateTime: { required: false, label: 'Service Date & Time (Optional)', type: 'datetime' },
 
-        // Work Type
+        // Device info (boiler/water heater/heating)
+        deviceType: {
+          required: false,
+          label: 'Device Type',
+          type: 'select',
+          options: [
+            { value: 'waterHeater', label: 'Water Heater (Bojler)' },
+            { value: 'boiler', label: 'Boiler' },
+            { value: 'heatingSystem', label: 'Heating System' },
+            { value: 'pump', label: 'Pump' },
+            { value: 'pipes', label: 'Pipes' },
+            { value: 'other', label: 'Other' }
+          ]
+        },
+        deviceBrand: baseConfig.deviceBrand,
+        deviceModel: baseConfig.deviceModel,
+        deviceSerialNumber: baseConfig.deviceSerialNumber,
+
+        // Work type
         workType: {
-          required: false,
+          required: true,
           label: 'Vrsta posla',
-          placeholder: 'Izaberite vrstu posla',
           type: 'select',
           options: [
-            { value: 'newBathroom', label: 'Novo kupatilo' },
-            { value: 'bathroomRenovation', label: 'Renoviranje kupatila' },
-            { value: 'kitchen', label: 'Kuhinja' },
-            { value: 'unclogging', label: 'Odgušenje' },
-            { value: 'pool', label: 'Bazeni' },
-            { value: 'tiles', label: 'Pločice' },
-            { value: 'sewage', label: 'Kanalizacija' },
-            { value: 'waterHeater', label: 'Bojler' },
-            { value: 'pipes', label: 'Vodovodne instalacije' },
-            { value: 'faucets', label: 'Slavine i armature' },
-            { value: 'toilet', label: 'WC šolja' },
-            { value: 'shower', label: 'Tuš kabina' },
-            { value: 'emergency', label: 'Hitne intervencije' },
+            { value: 'installation', label: 'Ugradnja' },
+            { value: 'repair', label: 'Popravka' },
             { value: 'maintenance', label: 'Održavanje' },
-            { value: 'inspection', label: 'Pregled instalacija' },
-            { value: 'other', label: 'Ostalo' }
+            { value: 'unclogging', label: 'Odgušenje' },
+            { value: 'inspection', label: 'Pregled' }
           ]
         },
 
-        // Additional Details
-        workDetails: {
-          required: false,
-          label: 'Detalji posla',
-          placeholder: 'Izaberite detalje posla',
-          type: 'multi-select',
-          options: [
-            { value: 'ceramicTiles', label: 'Keramičke pločice' },
-            { value: 'porcelainTiles', label: 'Porcelanske pločice' },
-            { value: 'marbleTiles', label: 'Mermerne pločice' },
-            { value: 'waterproofing', label: 'Hidroizolacija' },
-            { value: 'drainInstallation', label: 'Ugradnja odvoda' },
-            { value: 'pipeReplacement', label: 'Zamena cevi' },
-            { value: 'toiletInstallation', label: 'Montaža WC šolje' },
-            { value: 'sinkInstallation', label: 'Montaža lavaboa' },
-            { value: 'showerInstallation', label: 'Montaža tuš kabine' },
-            { value: 'bathtubInstallation', label: 'Montaža kade' },
-            { value: 'faucetInstallation', label: 'Montaža slavina' }
-          ]
-        },
-
-        // Materials Needed
-        materialsNeeded: {
-          required: false,
-          label: 'Potreban materijal',
-          placeholder: 'Izaberite potreban materijal',
-          type: 'multi-select',
-          options: [
-            { value: 'tiles', label: 'Pločice' },
-            { value: 'grout', label: 'Fug masa' },
-            { value: 'sealant', label: 'Silikon' },
-            { value: 'pipes', label: 'Cevi' },
-            { value: 'fittings', label: 'Fitinzi' },
-            { value: 'toilet', label: 'WC šolja' },
-            { value: 'sink', label: 'Lavabo' },
-            { value: 'faucet', label: 'Slavina' },
-            { value: 'shower', label: 'Tuš kabina' },
-            { value: 'bathtub', label: 'Kada' },
-            { value: 'waterproofing', label: 'Hidroizolacija' },
-            { value: 'tools', label: 'Alat' }
-          ]
-        },
-
-        // Description
-        description: {
-          required: false,
-          label: 'Opis posla',
-          placeholder: 'Unesite opis posla',
-          type: 'textarea',
-          rows: 3
-        },
-
-        // Area Size
-        areaSize: {
-          required: false,
-          label: 'Površina (m²)',
-          placeholder: 'Unesite površinu u kvadratnim metrima',
-          type: 'text'
-        },
-
-        // Water Shutoff Required
-        requiresWaterShutoff: {
-          required: false,
-          label: 'Potrebno isključenje vode',
-          type: 'select',
-          options: [
-            { value: 'yes', label: 'Da' },
-            { value: 'no', label: 'Ne' },
-            { value: 'unknown', label: 'Nije poznato' }
-          ]
-        },
-
-        // Access Information
-        accessInfo: {
-          required: false,
-          label: 'Informacije o pristupu',
-          placeholder: 'Unesite informacije o pristupu objektu',
-          type: 'textarea',
-          rows: 2
-        },
-
-        // Scheduling
-        serviceDate: {
-          required: false,
-          label: 'Datum izvođenja',
-          type: 'datetime-local',
-          placeholder: 'Izaberite datum i vreme'
-        },
-
-        estimatedDuration: {
-          required: false,
-          label: 'Procenjeno trajanje',
-          type: 'select',
-          options: [
-            { value: '1', label: '1 dan' },
-            { value: '2', label: '2 dana' },
-            { value: '3', label: '3 dana' },
-            { value: '4', label: '4 dana' },
-            { value: '5', label: '5 dana' },
-            { value: '7', label: '1 nedelja' },
-            { value: '14', label: '2 nedelje' },
-            { value: 'more', label: 'Više od 2 nedelje' }
-          ]
-        },
-
-        // Priority
-        priority: {
-          required: false,
-          label: 'Prioritet',
-          placeholder: 'Izaberite prioritet',
-          type: 'select',
-          options: [
-            { value: 'low', label: 'Nizak' },
-            { value: 'medium', label: 'Srednji' },
-            { value: 'high', label: 'Visok' },
-            { value: 'urgent', label: 'Hitno' }
-          ]
-        },
-
-        // Assignment
-        assignedTo: {
-          required: false,
-          label: 'Dodeljeno',
-          placeholder: 'Izaberite vodoinstalatera',
-          type: 'select',
-          options: []
-        }
+        isEmergency: { required: false, label: 'Hitna intervencija', type: 'select', options: [
+          { value: 'no', label: 'Ne' },
+          { value: 'yes', label: 'Da' }
+        ] },
+        preferredTimeSlot: { required: false, label: 'Preferirani termin', type: 'select', options: [
+          { value: 'morning', label: 'Jutro (08-12)' },
+          { value: 'afternoon', label: 'Popodne (12-16)' },
+          { value: 'evening', label: 'Veče (16-20)' }
+        ] },
+        issueDescription: { ...baseConfig.issueDescription, label: 'Opis posla' },
+        assignedTo: baseConfig.assignedTo,
+        priority: baseConfig.priority
       };
-      return plumberConfig;
       
     case 'Auto Mechanic':
       return {
@@ -828,7 +768,18 @@ export const getJobFormConfig = (businessType) => {
       
     case 'HVAC Technician':
       return {
-        ...baseConfig,
+        // Client info
+        clientName: baseConfig.clientName,
+        clientPhone: baseConfig.clientPhone,
+        clientEmail: baseConfig.clientEmail,
+        clientAddress: baseConfig.clientAddress,
+        serviceLocation: baseConfig.serviceLocation,
+        serviceDateTime: {
+          required: true,
+          label: 'Service Date & Time',
+          type: 'datetime'
+        },
+        // System type
         deviceType: {
           required: true,
           label: 'System Type',
@@ -844,12 +795,64 @@ export const getJobFormConfig = (businessType) => {
             { value: 'thermostat', label: 'Thermostat' },
             { value: 'other', label: 'Other' }
           ]
-        }
+        },
+        // Service details
+        serviceType: {
+          required: true,
+          label: 'Service Type',
+          type: 'select',
+          options: [
+            { value: 'installation', label: 'Installation' },
+            { value: 'repair', label: 'Repair' },
+            { value: 'maintenance', label: 'Maintenance' },
+            { value: 'inspection', label: 'Inspection' }
+          ]
+        },
+        assignedTo: baseConfig.assignedTo,
+        issueDescription: baseConfig.issueDescription,
+        priority: baseConfig.priority
+      };
+
+    // Elevator Technician should strongly rely on on-site address and access
+    case 'Elevator Technician':
+      return {
+        clientName: baseConfig.clientName,
+        clientPhone: baseConfig.clientPhone,
+        clientEmail: baseConfig.clientEmail,
+        clientAddress: { ...baseConfig.clientAddress, required: true },
+        serviceLocation: baseConfig.serviceLocation,
+        serviceDateTime: { required: false, label: 'Service Date & Time (Optional)', type: 'datetime' },
+        isEmergency: { required: false, label: 'Emergency', type: 'select', options: [
+          { value: 'no', label: 'No' },
+          { value: 'yes', label: 'Yes' }
+        ] },
+        preferredTimeSlot: { required: false, label: 'Preferred Time', type: 'select', options: [
+          { value: 'morning', label: 'Morning (08-12)' },
+          { value: 'afternoon', label: 'Afternoon (12-16)' },
+          { value: 'evening', label: 'Evening (16-20)' }
+        ] },
+        buildingId: { required: false, label: 'Building ID/Name', type: 'text' },
+        floor: { required: false, label: 'Floor', type: 'text' },
+        accessInfo: { required: false, label: 'Access Info', type: 'textarea', rows: 2 },
+        issueDescription: baseConfig.issueDescription,
+        assignedTo: baseConfig.assignedTo,
+        priority: baseConfig.priority
       };
       
     case 'IT Technician':
       return {
-        ...baseConfig,
+        // Client info
+        clientName: baseConfig.clientName,
+        clientPhone: baseConfig.clientPhone,
+        clientEmail: baseConfig.clientEmail,
+        clientAddress: baseConfig.clientAddress,
+        serviceLocation: baseConfig.serviceLocation,
+        serviceDateTime: {
+          required: true,
+          label: 'Service Date & Time',
+          type: 'datetime'
+        },
+        // Device category (no brand/model/serial)
         deviceType: {
           required: true,
           label: 'Device Type',
@@ -865,7 +868,239 @@ export const getJobFormConfig = (businessType) => {
             { value: 'phoneTablet', label: 'Phone/Tablet' },
             { value: 'other', label: 'Other' }
           ]
-        }
+        },
+        serviceType: {
+          required: true,
+          label: 'Service Type',
+          type: 'select',
+          options: [
+            { value: 'repair', label: 'Repair' },
+            { value: 'installation', label: 'Installation' },
+            { value: 'diagnostics', label: 'Diagnostics' },
+            { value: 'software', label: 'Software' }
+          ]
+        },
+        assignedTo: baseConfig.assignedTo,
+        issueDescription: baseConfig.issueDescription,
+        priority: baseConfig.priority
+      };
+
+    case 'Painter':
+      return {
+        clientName: baseConfig.clientName,
+        clientPhone: baseConfig.clientPhone,
+        clientEmail: baseConfig.clientEmail,
+        clientAddress: baseConfig.clientAddress,
+        serviceLocation: baseConfig.serviceLocation,
+        serviceDateTime: { required: false, label: 'Service Date & Time (Optional)', type: 'datetime' },
+        serviceType: {
+          required: true,
+          label: 'Work Type',
+          type: 'select',
+          options: [
+            { value: 'interior', label: 'Interior Painting' },
+            { value: 'exterior', label: 'Exterior Painting' },
+            { value: 'decorative', label: 'Decorative' },
+            { value: 'commercial', label: 'Commercial' },
+            { value: 'residential', label: 'Residential' },
+            { value: 'other', label: 'Other' }
+          ]
+        },
+        assignedTo: baseConfig.assignedTo,
+        issueDescription: { ...baseConfig.issueDescription, label: 'Job Details' },
+        priority: baseConfig.priority
+      };
+
+    case 'Tile Installer':
+      return {
+        clientName: baseConfig.clientName,
+        clientPhone: baseConfig.clientPhone,
+        clientEmail: baseConfig.clientEmail,
+        clientAddress: baseConfig.clientAddress,
+        serviceLocation: baseConfig.serviceLocation,
+        serviceDateTime: { required: false, label: 'Service Date & Time (Optional)', type: 'datetime' },
+        serviceType: {
+          required: true,
+          label: 'Work Area',
+          type: 'select',
+          options: [
+            { value: 'bathroom', label: 'Bathroom' },
+            { value: 'kitchen', label: 'Kitchen' },
+            { value: 'floor', label: 'Floor' },
+            { value: 'outdoor', label: 'Outdoor' },
+            { value: 'backsplash', label: 'Backsplash' },
+            { value: 'other', label: 'Other' }
+          ]
+        },
+        assignedTo: baseConfig.assignedTo,
+        issueDescription: { ...baseConfig.issueDescription, label: 'Job Details' },
+        priority: baseConfig.priority
+      };
+
+    case 'Carpenter':
+      return {
+        clientName: baseConfig.clientName,
+        clientPhone: baseConfig.clientPhone,
+        clientEmail: baseConfig.clientEmail,
+        clientAddress: baseConfig.clientAddress,
+        serviceLocation: baseConfig.serviceLocation,
+        serviceDateTime: { required: false, label: 'Service Date & Time (Optional)', type: 'datetime' },
+        serviceType: {
+          required: true,
+          label: 'Project Type',
+          type: 'select',
+          options: [
+            { value: 'customFurniture', label: 'Custom Furniture' },
+            { value: 'kitchenRemodel', label: 'Kitchen Remodel' },
+            { value: 'deckPatio', label: 'Deck/Patio' },
+            { value: 'cabinets', label: 'Cabinets' },
+            { value: 'flooring', label: 'Flooring' },
+            { value: 'other', label: 'Other' }
+          ]
+        },
+        assignedTo: baseConfig.assignedTo,
+        issueDescription: { ...baseConfig.issueDescription, label: 'Project Details' },
+        priority: baseConfig.priority
+      };
+
+    // Facade Specialist removed as separate type; painters can cover facade work
+
+    case 'Handyman':
+      return {
+        clientName: baseConfig.clientName,
+        clientPhone: baseConfig.clientPhone,
+        clientEmail: baseConfig.clientEmail,
+        clientAddress: baseConfig.clientAddress,
+        serviceLocation: baseConfig.serviceLocation,
+        serviceDateTime: { required: false, label: 'Service Date & Time (Optional)', type: 'datetime' },
+        serviceType: {
+          required: true,
+          label: 'Service Type',
+          type: 'select',
+          options: [
+            { value: 'repair', label: 'Repair' },
+            { value: 'installation', label: 'Installation' },
+            { value: 'assembly', label: 'Furniture Assembly' },
+            { value: 'maintenance', label: 'Maintenance' }
+          ]
+        },
+        assignedTo: baseConfig.assignedTo,
+        issueDescription: baseConfig.issueDescription,
+        priority: baseConfig.priority
+      };
+
+    case 'House Cleaning':
+      return {
+        clientName: baseConfig.clientName,
+        clientPhone: baseConfig.clientPhone,
+        clientEmail: baseConfig.clientEmail,
+        clientAddress: { ...baseConfig.clientAddress, required: true },
+        serviceLocation: baseConfig.serviceLocation,
+        serviceDateTime: { required: false, label: 'Service Date & Time (Optional)', type: 'datetime' },
+        serviceType: {
+          required: true,
+          label: 'Cleaning Type',
+          type: 'select',
+          options: [
+            { value: 'standard', label: 'Standard Cleaning' },
+            { value: 'deep', label: 'Deep Cleaning' },
+            { value: 'moveInOut', label: 'Move-in/Move-out' },
+            { value: 'postConstruction', label: 'Post-Construction' }
+          ]
+        },
+        areaSize: { required: false, label: 'Area (m²)', type: 'text' },
+        issueDescription: { ...baseConfig.issueDescription, label: 'Notes' },
+        assignedTo: baseConfig.assignedTo,
+        priority: baseConfig.priority
+      };
+
+    case 'Pest Control':
+      return {
+        clientName: baseConfig.clientName,
+        clientPhone: baseConfig.clientPhone,
+        clientEmail: baseConfig.clientEmail,
+        clientAddress: { ...baseConfig.clientAddress, required: true },
+        serviceLocation: baseConfig.serviceLocation,
+        serviceDateTime: { required: false, label: 'Service Date & Time (Optional)', type: 'datetime' },
+        serviceType: {
+          required: true,
+          label: 'Infestation Type',
+          type: 'select',
+          options: [
+            { value: 'insects', label: 'Insects' },
+            { value: 'rodents', label: 'Rodents' },
+            { value: 'termites', label: 'Termites' },
+            { value: 'bedBugs', label: 'Bed Bugs' },
+            { value: 'other', label: 'Other' }
+          ]
+        },
+        isEmergency: { required: false, label: 'Emergency', type: 'select', options: [
+          { value: 'no', label: 'No' },
+          { value: 'yes', label: 'Yes' }
+        ] },
+        preferredTimeSlot: { required: false, label: 'Preferred Time', type: 'select', options: [
+          { value: 'morning', label: 'Morning (08-12)' },
+          { value: 'afternoon', label: 'Afternoon (12-16)' },
+          { value: 'evening', label: 'Evening (16-20)' }
+        ] },
+        accessInfo: { required: false, label: 'Access Info', type: 'textarea', rows: 2 },
+        issueDescription: { ...baseConfig.issueDescription, label: 'Notes' },
+        assignedTo: baseConfig.assignedTo,
+        priority: baseConfig.priority
+      };
+
+    case 'Window Cleaning':
+      return {
+        clientName: baseConfig.clientName,
+        clientPhone: baseConfig.clientPhone,
+        clientEmail: baseConfig.clientEmail,
+        clientAddress: { ...baseConfig.clientAddress, required: true },
+        serviceLocation: baseConfig.serviceLocation,
+        serviceDateTime: { required: false, label: 'Service Date & Time (Optional)', type: 'datetime' },
+        serviceType: {
+          required: true,
+          label: 'Service Type',
+          type: 'select',
+          options: [
+            { value: 'residential', label: 'Residential' },
+            { value: 'commercial', label: 'Commercial' },
+            { value: 'highRise', label: 'High-rise' }
+          ]
+        },
+        floorCount: { required: false, label: 'Floors', type: 'text' },
+        issueDescription: { ...baseConfig.issueDescription, label: 'Notes' },
+        assignedTo: baseConfig.assignedTo,
+        priority: baseConfig.priority
+      };
+    case 'Carpet Cleaning':
+      return {
+        clientName: baseConfig.clientName,
+        clientPhone: baseConfig.clientPhone,
+        clientEmail: baseConfig.clientEmail,
+        clientAddress: { ...baseConfig.clientAddress, required: true },
+        serviceLocation: baseConfig.serviceLocation,
+        serviceDateTime: { required: false, label: 'Service Date & Time (Optional)', type: 'datetime' },
+        serviceType: {
+          required: true,
+          label: 'Cleaning Type',
+          type: 'select',
+          options: [
+            { value: 'carpet', label: 'Carpet' },
+            { value: 'rug', label: 'Rug' },
+            { value: 'upholstery', label: 'Upholstery' },
+            { value: 'mattress', label: 'Mattress' },
+            { value: 'other', label: 'Other' }
+          ]
+        },
+        areaSize: {
+          required: false,
+          label: 'Area (m²)',
+          type: 'text',
+          placeholder: 'Approximate area'
+        },
+        issueDescription: { ...baseConfig.issueDescription, label: 'Notes' },
+        assignedTo: baseConfig.assignedTo,
+        priority: baseConfig.priority
       };
       
     // Dodati ostale tipove biznisa po potrebi
@@ -920,7 +1155,7 @@ export const getJobFormInitialState = (businessType) => {
     case 'Home Appliance Technician':
       return {
         ...baseState,
-        serviceLocation: 'InWorkshop', // Default na radionicu
+        serviceLocation: 'OnSite', // Default na teren
         apartmentNumber: '',
         floor: '',
         locationDescription: '',

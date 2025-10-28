@@ -55,10 +55,16 @@ export const fetchClientsAsync = createAsyncThunk(
   'clients/fetchClients',
   async () => {
     try {
-      const response = await getClients(); // Changed from fetchClients
+      console.log('🔍 fetchClientsAsync: Starting to fetch clients');
+      console.log('🔍 Current localStorage profile:', localStorage.getItem('profile'));
+      
+      const response = await getClients();
+      console.log('✅ fetchClientsAsync: Successfully fetched clients:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Error fetching clients:', error);
+      console.error('❌ fetchClientsAsync: Error fetching clients:', error);
+      console.error('❌ Error status:', error.response?.status);
+      console.error('❌ Error response:', error.response?.data);
       throw error;
     }
   }

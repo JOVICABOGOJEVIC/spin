@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { getJobs, deleteJob, loadMockJobs } from '../../redux/features/jobSlice';
+import { getJobs, deleteJob } from '../../redux/features/jobSlice';
 import { getBusinessType } from '../../utils/businessTypeUtils';
 import { getJobFormConfig } from '../../utils/formConfig';
 import { toast } from 'react-toastify';
@@ -43,13 +43,24 @@ const JobsManagementView = () => {
     location: JOB_LOCATIONS.ALL,
     search: ''
   });
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
 
+  // Jobs are loaded by parent component (JobsDashboard)
+  // No need to load them here
+
+  // Timeout za loading stanje
   useEffect(() => {
-    // Only load mock jobs if needed and not already loading
-    if (!loading && (!jobs || jobs.length === 0)) {
-      dispatch(loadMockJobs(businessType));
+    if (loading) {
+      const timeout = setTimeout(() => {
+        console.log('Loading timeout reached');
+        setLoadingTimeout(true);
+      }, 10000); // 10 sekundi timeout
+
+      return () => clearTimeout(timeout);
+    } else {
+      setLoadingTimeout(false);
     }
-  }, [dispatch, businessType, jobs, loading]);
+  }, [loading]);
 
   const handleDeleteJob = (id) => {
     if (window.confirm('Da li ste sigurni da želite obrisati ovaj posao?')) {
@@ -252,13 +263,24 @@ const JobsManagementView = () => {
           <Briefcase className="mr-2" size={24} />
           Upravljanje poslovima
         </h2>
-        <button
-          onClick={handleAddJob}
-          className="px-4 py-1.5 text-sm bg-primary text-white rounded-md hover:bg-primaryDark transition-colors flex items-center"
-        >
-          <PlusCircle className="h-4 w-4 mr-1.5" />
-          Novi posao
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => {
+              dispatch(getJobs(businessType));
+            }}
+            className="px-4 py-1.5 text-sm bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors flex items-center"
+          >
+            <RefreshCw className="h-4 w-4 mr-1.5" />
+            Osveži
+          </button>
+          <button
+            onClick={handleAddJob}
+            className="px-4 py-1.5 text-sm bg-primary text-white rounded-md hover:bg-primaryDark transition-colors flex items-center"
+          >
+            <PlusCircle className="h-4 w-4 mr-1.5" />
+            Novi posao
+          </button>
+        </div>
       </div>
 
       {/* Filter controls */}
@@ -343,10 +365,24 @@ const JobsManagementView = () => {
       </div>
 
       {/* Job list */}
-      {loading ? (
+      {loading && !loadingTimeout ? (
         <div className="text-center py-8">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
           <p className="mt-2 text-gray-600">Učitavanje poslova...</p>
+        </div>
+      ) : loadingTimeout ? (
+        <div className="text-center py-8 text-gray-500">
+          <p className="text-lg font-medium mb-2">Greška pri učitavanju poslova</p>
+          <p className="text-sm mb-4">Proverite da li je server pokrenut i pokušajte ponovo</p>
+          <button 
+            onClick={() => {
+              setLoadingTimeout(false);
+              dispatch(getJobs(businessType));
+            }}
+            className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primaryDark transition-colors"
+          >
+            Pokušaj ponovo
+          </button>
         </div>
       ) : filteredJobs.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -433,7 +469,17 @@ const JobsManagementView = () => {
         </div>
       ) : (
         <div className="text-center py-8 text-gray-500">
-          Nije pronađen nijedan posao koji odgovara vašim filterima. Pokušajte prilagoditi kriterijume pretrage.
+          {jobs && jobs.length === 0 ? (
+            <div>
+              <p className="text-lg font-medium mb-2">Nema kreiranih poslova za sada</p>
+              <p className="text-sm">Kliknite na "Novi posao" da dodate prvi posao</p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-lg font-medium mb-2">Nije pronađen nijedan posao koji odgovara vašim filterima</p>
+              <p className="text-sm">Pokušajte prilagoditi kriterijume pretrage</p>
+            </div>
+          )}
         </div>
       )}
     </div>

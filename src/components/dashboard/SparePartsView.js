@@ -3,8 +3,8 @@ import SparePartList from '../spareParts/SparePartList';
 
 const SparePartsView = () => {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="bg-[#0f1c47] rounded-lg shadow-sm p-6">
+    <div className="h-full bg-gray-900 p-2 sm:p-4">
+      <div className="bg-gray-900">
         <SparePartList />
       </div>
     </div>

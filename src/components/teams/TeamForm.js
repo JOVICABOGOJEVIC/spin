@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
-import { createTeam, updateTeam } from '../../redux/actions/teamActions';
+import { createTeam, updateTeam } from '../../redux/features/teamSlice';
+import { X } from 'lucide-react';
 
 const TeamForm = ({ isEdit, team, onClose, availableWorkers }) => {
   const dispatch = useDispatch();
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    workers: [],
-    isActive: true
+    members: [],
+    active: true
   });
 
   useEffect(() => {
@@ -17,8 +18,8 @@ const TeamForm = ({ isEdit, team, onClose, availableWorkers }) => {
       setFormData({
         name: team.name || '',
         description: team.description || '',
-        workers: team.workers || [],
-        isActive: team.isActive !== undefined ? team.isActive : true
+        members: team.members ? (team.members.map(m => typeof m === 'object' ? m._id : m)) : [],
+        active: team.active !== undefined ? team.active : true
       });
     }
   }, [isEdit, team]);
@@ -34,9 +35,9 @@ const TeamForm = ({ isEdit, team, onClose, availableWorkers }) => {
   const handleWorkerSelection = (workerId) => {
     setFormData(prev => ({
       ...prev,
-      workers: prev.workers.includes(workerId)
-        ? prev.workers.filter(id => id !== workerId)
-        : [...prev.workers, workerId]
+      members: prev.members.includes(workerId)
+        ? prev.members.filter(id => id !== workerId)
+        : [...prev.members, workerId]
     }));
   };
 
@@ -50,15 +51,15 @@ const TeamForm = ({ isEdit, team, onClose, availableWorkers }) => {
 
     try {
       if (isEdit) {
-        await dispatch(updateTeam(team._id, formData));
+        await dispatch(updateTeam({ id: team._id, updatedTeamData: formData })).unwrap();
         toast.success('Tim je uspešno ažuriran');
       } else {
-        await dispatch(createTeam(formData));
+        await dispatch(createTeam({ teamData: formData })).unwrap();
         toast.success('Tim je uspešno kreiran');
       }
       onClose();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Greška pri čuvanju tima');
+      toast.error(error?.message || 'Greška pri čuvanju tima');
     }
   };
 
@@ -66,41 +67,47 @@ const TeamForm = ({ isEdit, team, onClose, availableWorkers }) => {
   const labelClass = "block text-xs font-medium text-white mb-1";
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl">
-        <div className="border-b border-gray-700 p-4">
-          <h2 className="text-lg font-medium text-white">
-            {isEdit ? 'Izmena tima' : 'Novi tim'}
-          </h2>
-        </div>
+    <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl">
+      <div className="border-b border-gray-700 p-4 flex justify-between items-center">
+        <h2 className="text-lg font-medium text-white">
+          {isEdit ? 'Izmena tima' : 'Novi tim'}
+        </h2>
+        <button
+          onClick={onClose}
+          className="text-gray-400 hover:text-white transition-colors"
+        >
+          <X size={20} />
+        </button>
+      </div>
 
-        <form onSubmit={handleSubmit} className="p-4">
-          <div className="space-y-4">
-            <div>
-              <label className={labelClass}>Naziv tima *</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className={baseInputClass}
-                required
-              />
-            </div>
+      <form onSubmit={handleSubmit} className="p-4">
+        <div className="space-y-4">
+          <div>
+            <label className={labelClass}>Naziv tima *</label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className={baseInputClass}
+              required
+            />
+          </div>
 
-            <div>
-              <label className={labelClass}>Opis</label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                className={`${baseInputClass} h-20`}
-                rows={3}
-              />
-            </div>
+          <div>
+            <label className={labelClass}>Opis</label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              className={`${baseInputClass} h-20`}
+              rows={3}
+            />
+          </div>
 
-            <div>
-              <label className={labelClass}>Članovi tima</label>
+          <div>
+            <label className={labelClass}>Članovi tima</label>
+            {availableWorkers && availableWorkers.length > 0 ? (
               <div className="mt-2 grid grid-cols-2 gap-2 max-h-48 overflow-y-auto bg-gray-900 p-2 rounded">
                 {availableWorkers.map(worker => (
                   <div
@@ -110,7 +117,7 @@ const TeamForm = ({ isEdit, team, onClose, availableWorkers }) => {
                     <input
                       type="checkbox"
                       id={`worker-${worker._id}`}
-                      checked={formData.workers.includes(worker._id)}
+                      checked={formData.members.includes(worker._id)}
                       onChange={() => handleWorkerSelection(worker._id)}
                       className="rounded border-gray-400 text-blue-600 focus:ring-blue-500"
                     />
@@ -118,45 +125,47 @@ const TeamForm = ({ isEdit, team, onClose, availableWorkers }) => {
                       htmlFor={`worker-${worker._id}`}
                       className="text-sm text-white cursor-pointer"
                     >
-                      {worker.name}
+                      {worker.firstName} {worker.lastName}
                     </label>
                   </div>
                 ))}
               </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                name="isActive"
-                id="isActive"
-                checked={formData.isActive}
-                onChange={handleChange}
-                className="rounded border-gray-400 text-blue-600 focus:ring-blue-500"
-              />
-              <label htmlFor="isActive" className="text-sm text-white">
-                Aktivan tim
-              </label>
-            </div>
+            ) : (
+              <p className="text-sm text-gray-400 mt-2">Nema dostupnih radnika</p>
+            )}
           </div>
 
-          <div className="flex justify-end space-x-2 mt-6 pt-4 border-t border-gray-700">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-300 hover:text-white bg-gray-700 rounded-md hover:bg-gray-600 transition-colors"
-            >
-              Otkaži
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
-            >
-              {isEdit ? 'Sačuvaj izmene' : 'Kreiraj tim'}
-            </button>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              name="active"
+              id="active"
+              checked={formData.active}
+              onChange={handleChange}
+              className="rounded border-gray-400 text-blue-600 focus:ring-blue-500"
+            />
+            <label htmlFor="active" className="text-sm text-white">
+              Aktivan tim
+            </label>
           </div>
-        </form>
-      </div>
+        </div>
+
+        <div className="flex justify-end space-x-2 mt-6 pt-4 border-t border-gray-700">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm text-gray-300 hover:text-white bg-gray-700 rounded-md hover:bg-gray-600 transition-colors"
+          >
+            Otkaži
+          </button>
+          <button
+            type="submit"
+            className="px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+          >
+            {isEdit ? 'Sačuvaj izmene' : 'Kreiraj tim'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 };
