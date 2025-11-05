@@ -5,6 +5,8 @@ import {Provider} from 'react-redux';
 import store from './redux/store'
 import './index.css';
 import './styles/themes.css';
+import './styles/theme-utilities.css';
+import './i18n/config'; // Initialize i18n
 import App from './App';
 
 // Dodajemo unstable_batchedUpdates funkciju na ReactDOM objekat ako ne postoji

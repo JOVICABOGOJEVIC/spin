@@ -23,6 +23,14 @@
     font-family: 'Montserrat', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background-color: var(--color-background, #ffffff);
+    color: var(--color-text, #1f2937);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  html {
+    background-color: var(--color-background, #ffffff);
+    color: var(--color-text, #1f2937);
   }
   
   code {
@@ -126,5 +134,38 @@
 
 .react-select__placeholder {
   color: rgb(156, 163, 175) !important;
+}
+
+/* Spora rotacija za @ simbol - 10 sekundi za pun krug */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 10s linear infinite;
+}
+
+/* Brža rotacija za @ simbol u admin dashboard - 4 sekunde */
+.animate-spin-4s {
+  animation: spin-slow 4s linear infinite;
+}
+
+/* Ultra brza rotacija za @ simbol u admin dashboard - 0.4s (10x brže od 4s) */
+@keyframes spin-ultra-fast {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-ultra-fast {
+  animation: spin-ultra-fast 0.4s linear infinite;
 }
 

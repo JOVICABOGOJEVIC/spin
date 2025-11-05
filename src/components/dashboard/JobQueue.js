@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { Clock, AlertCircle, User, Phone, MapPin, Calendar, Edit, List, Trash2, CheckCircle, X } from 'lucide-react';
 import axios from 'axios';
@@ -9,6 +10,7 @@ import JobForm from '../forms/JobForm';
 
 const JobQueue = ({ jobs = [], loading = false, onJobSelect, selectedJobId, showStats = true }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [editingJob, setEditingJob] = useState(null);
@@ -78,19 +80,19 @@ const JobQueue = ({ jobs = [], loading = false, onJobSelect, selectedJobId, show
       }
       
       const statusLabels = {
-        'on_the_road': 'U putu ka stranci',
-        'at_client': 'Kod stranke',
-        'completed': 'Završeno'
+        'on_the_road': t('jobs.onRoad'),
+        'at_client': t('jobs.atClient'),
+        'completed': t('jobs.completed')
       };
       
-      toast.success(`Status ažuriran: ${statusLabels[status]}`);
+      toast.success(`${t('jobs.statusUpdated')}: ${statusLabels[status]}`);
       
       // Refresh jobs to show updated status
       const businessType = user?.result?.businessType || 'Home Appliance Technician';
       dispatch(getJobs(businessType));
     } catch (error) {
       console.error('Error updating status:', error);
-      toast.error('Greška pri ažuriranju statusa');
+      toast.error(t('jobs.errorUpdatingStatus'));
     }
   };
 
@@ -107,9 +109,9 @@ const JobQueue = ({ jobs = [], loading = false, onJobSelect, selectedJobId, show
 
   // Handle job delete with confirmation
   const handleDeleteJob = (job) => {
-    if (window.confirm(`Da li ste sigurni da želite obrisati posao za klijenta "${job.clientName}"?`)) {
+    if (window.confirm(`${t('jobs.deleteConfirmation')} "${job.clientName}"?`)) {
       dispatch(deleteJob(job._id));
-      toast.success('Posao uspešno obrisan');
+      toast.success(t('common.success'));
     }
   };
 
@@ -172,7 +174,7 @@ const JobQueue = ({ jobs = [], loading = false, onJobSelect, selectedJobId, show
   };
 
   const formatTime = (timeString) => {
-    if (!timeString) return 'No time';
+    if (!timeString) return t('jobs.noTime');
     return timeString;
   };
 
@@ -195,7 +197,7 @@ const JobQueue = ({ jobs = [], loading = false, onJobSelect, selectedJobId, show
   return (
     <div className="bg-gray-800 rounded-lg p-2 sm:p-4 h-full">
       <div className="mb-3 sm:mb-4">
-        <h2 className="text-base sm:text-xl font-bold text-white mb-2 sm:mb-4">Job Queue</h2>
+        <h2 className="text-base sm:text-xl font-bold text-white mb-2 sm:mb-4">{t('jobs.jobQueue')}</h2>
         
         {/* Filters - Mobile Responsive */}
         <div className="flex flex-col sm:flex-row gap-2 mb-3 sm:mb-4">
@@ -204,7 +206,7 @@ const JobQueue = ({ jobs = [], loading = false, onJobSelect, selectedJobId, show
             onChange={(e) => setFilter(e.target.value)}
             className="px-2 py-1 sm:px-3 sm:py-1 text-xs sm:text-sm bg-gray-700 text-white rounded border border-gray-600"
           >
-            <option value="all">All Jobs</option>
+            <option value="all">{t('jobs.allJobs')}</option>
             <option value="draft">Draft</option>
             <option value="pending">Pending</option>
             <option value="scheduled">Scheduled</option>
@@ -314,7 +316,7 @@ const JobQueue = ({ jobs = [], loading = false, onJobSelect, selectedJobId, show
                                     setEditingJob(job);
                                   }}
                                   className="p-0.5 rounded hover:bg-blue-600 text-gray-300 hover:text-white"
-                                  title="Edit Job"
+                                  title={t('jobs.editJob')}
                                 >
                                   <Edit className="h-3 w-3 stroke-[2.5]" />
                                 </button>
@@ -322,10 +324,10 @@ const JobQueue = ({ jobs = [], loading = false, onJobSelect, selectedJobId, show
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleDeleteJob(job._id);
+                                    handleDeleteJob(job);
                                   }}
                                   className="p-0.5 rounded hover:bg-red-600 text-gray-300 hover:text-white"
-                                  title="Delete Job"
+                                  title={t('jobs.deleteJob')}
                                 >
                                   <Trash2 className="h-3 w-3 stroke-[2.5]" />
                                 </button>
@@ -349,7 +351,7 @@ const JobQueue = ({ jobs = [], loading = false, onJobSelect, selectedJobId, show
                                 <div className="bg-gray-700 rounded p-2">
                                   <div className="font-semibold text-white text-xs mb-2 flex items-center gap-1">
                                     <User className="h-3 w-3" />
-                                    Client Info
+                                    {t('jobs.clientInfo')}
                                   </div>
                                   <div className="text-[10px] text-gray-300 space-y-1">
                                     <div className="flex gap-2">
@@ -422,7 +424,7 @@ const JobQueue = ({ jobs = [], loading = false, onJobSelect, selectedJobId, show
                                     </div>
                                     {job.scheduledTime && (
                                       <div className="flex gap-2">
-                                        <span className="text-gray-400 min-w-[50px]">Time:</span>
+                                        <span className="text-gray-400 min-w-[50px]">{t('jobs.time')}:</span>
                                         <span className="flex-1">{job.scheduledTime}</span>
                                       </div>
                                     )}
@@ -443,7 +445,7 @@ const JobQueue = ({ jobs = [], loading = false, onJobSelect, selectedJobId, show
                                       </div>
                                     )}
                                     <div className="flex gap-2">
-                                      <span className="text-gray-400 min-w-[50px]">Status:</span>
+                                      <span className="text-gray-400 min-w-[50px]">{t('jobs.status')}:</span>
                                       <span className="flex-1">{job.status}</span>
                                     </div>
                                     <div className="flex gap-2">
@@ -520,13 +522,13 @@ const JobQueue = ({ jobs = [], loading = false, onJobSelect, selectedJobId, show
         <div className="text-center text-gray-400 py-8">
           {jobs && jobs.length === 0 ? (
             <div>
-              <p className="text-lg font-medium mb-2">No jobs found</p>
-              <p className="text-sm">Create your first job to get started</p>
+              <p className="text-lg font-medium mb-2">{t('jobs.noJobsFound')}</p>
+              <p className="text-sm">{t('jobs.createJob')}</p>
             </div>
           ) : (
             <div>
-              <p className="text-lg font-medium mb-2">No jobs match your filters</p>
-              <p className="text-sm">Try adjusting your search criteria</p>
+              <p className="text-lg font-medium mb-2">{t('jobs.noJobsMatch')}</p>
+              <p className="text-sm">{t('jobs.tryAdjustingFilters')}</p>
             </div>
           )}
         </div>
@@ -537,7 +539,7 @@ const JobQueue = ({ jobs = [], loading = false, onJobSelect, selectedJobId, show
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
           <div className="bg-gray-800 rounded-lg p-3 sm:p-6 max-w-4xl w-full max-h-[95vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-3 sm:mb-4 sticky top-0 bg-gray-800 pb-2 border-b border-gray-700">
-              <h2 className="text-base sm:text-xl font-bold text-white">Edit Job</h2>
+              <h2 className="text-base sm:text-xl font-bold text-white">{t('jobs.editJob')}</h2>
               <button
                 onClick={() => setEditingJob(null)}
                 className="text-gray-400 hover:text-white text-xl sm:text-2xl"
@@ -666,14 +668,14 @@ const JobQueue = ({ jobs = [], loading = false, onJobSelect, selectedJobId, show
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                   >
                     <Edit className="h-4 w-4" />
-                    Edit Job
+                    {t('jobs.editJob')}
                   </button>
                   <button
                     onClick={() => handleDeleteJob(selectedJob)}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
-                    Delete Job
+                    {t('jobs.deleteJob')}
                   </button>
                 </div>
               </div>

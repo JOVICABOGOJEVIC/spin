@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { loadDashboardMetrics } from '../../actions/dashboardActions';
 import { getJobs } from '../../redux/features/jobSlice';
 import { getBusinessType } from '../../utils/businessTypeUtils';
@@ -10,6 +11,7 @@ import ComparativeMetrics from './ComparativeMetrics';
 
 const JobsDashboard = () => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('scheduling');
   const businessType = getBusinessType();
 
@@ -43,19 +45,19 @@ const JobsDashboard = () => {
       <div className="flex space-x-1 mb-2 border-b border-gray-700">
         <TabButton 
           value="scheduling" 
-          label="Job Scheduling" 
+          label={t('jobs.jobScheduling')} 
           current={activeTab} 
           onClick={setActiveTab}
         />
         <TabButton 
           value="calendar" 
-          label="Calendar View" 
+          label={t('jobs.calendarView')} 
           current={activeTab} 
           onClick={setActiveTab}
         />
         <TabButton 
           value="list" 
-          label="Job List" 
+          label={t('jobs.jobList')} 
           current={activeTab} 
           onClick={setActiveTab}
         />

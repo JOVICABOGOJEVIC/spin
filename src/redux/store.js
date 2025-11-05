@@ -9,6 +9,8 @@ import ModelReducer from './features/modelSlice';
 import ClientReducer from './features/clientSlice';
 import DashboardReducer from '../reducers/dashboardReducer';
 import SparePartReducer from './features/sparePartSlice';
+import PaymentReducer from './features/paymentSlice';
+import SubscriptionPaymentReducer from './features/subscriptionPaymentSlice';
 
 // Mapiramo našu implementaciju u globalni objekat
 // Ovo može pomoći u slučaju da react-redux traži funkciju kroz window/global
@@ -26,7 +28,9 @@ export default configureStore({
     model: ModelReducer,
     client: ClientReducer,
     dashboard: DashboardReducer,
-    spareParts: SparePartReducer
+    spareParts: SparePartReducer,
+    payment: PaymentReducer,
+    subscriptionPayment: SubscriptionPaymentReducer
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware({
     serializableCheck: false

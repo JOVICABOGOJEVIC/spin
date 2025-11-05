@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
 import { createTeam, updateTeam } from '../../redux/features/teamSlice';
-import { X } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 
 const TeamForm = ({ isEdit, team, onClose, availableWorkers }) => {
   const dispatch = useDispatch();
@@ -108,27 +108,40 @@ const TeamForm = ({ isEdit, team, onClose, availableWorkers }) => {
           <div>
             <label className={labelClass}>Članovi tima</label>
             {availableWorkers && availableWorkers.length > 0 ? (
-              <div className="mt-2 grid grid-cols-2 gap-2 max-h-48 overflow-y-auto bg-gray-900 p-2 rounded">
-                {availableWorkers.map(worker => (
-                  <div
-                    key={worker._id}
-                    className="flex items-center space-x-2 p-2 rounded hover:bg-gray-800"
-                  >
-                    <input
-                      type="checkbox"
-                      id={`worker-${worker._id}`}
-                      checked={formData.members.includes(worker._id)}
-                      onChange={() => handleWorkerSelection(worker._id)}
-                      className="rounded border-gray-400 text-blue-600 focus:ring-blue-500"
-                    />
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto bg-gray-900 p-2 rounded border border-gray-800">
+                {availableWorkers.map(worker => {
+                  const isSelected = formData.members.includes(worker._id);
+                  return (
                     <label
+                      key={worker._id}
                       htmlFor={`worker-${worker._id}`}
-                      className="text-sm text-white cursor-pointer"
+                      className={`flex items-center gap-3 p-2 rounded-lg border transition-colors cursor-pointer ${
+                        isSelected
+                          ? 'border-blue-500 bg-blue-500/10'
+                          : 'border-gray-700 hover:border-gray-500 hover:bg-gray-800'
+                      }`}
                     >
-                      {worker.firstName} {worker.lastName}
+                      <input
+                        type="checkbox"
+                        id={`worker-${worker._id}`}
+                        checked={isSelected}
+                        onChange={() => handleWorkerSelection(worker._id)}
+                        className="sr-only"
+                      />
+                      <span
+                        className={`flex items-center justify-center w-5 h-5 rounded-md border transition-colors ${
+                          isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-500'
+                        }`}
+                        aria-hidden="true"
+                      >
+                        {isSelected && <Check size={14} className="text-white" />}
+                      </span>
+                      <span className="flex-1 text-sm text-white">
+                        {worker.firstName} {worker.lastName}
+                      </span>
                     </label>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-gray-400 mt-2">Nema dostupnih radnika</p>

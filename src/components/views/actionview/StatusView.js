@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { getJobs } from '../../../redux/features/jobSlice';
 import { getWorkers } from '../../../redux/features/workerSlice';
 import { getBusinessType } from '../../../utils/businessTypeUtils';
-import WorkersStatusDashboard from '../WorkersStatusDashboard';
 import axios from 'axios';
 import { 
   Users, 
@@ -64,70 +63,71 @@ const StatusView = () => {
     };
   }, [dispatch, businessType]);
   
-  // Calculate statistics based on calendar view mode
-  const calculateStatistics = (viewMode = 'day') => {
+  const calculateStatistics = (viewMode = 'all') => {
     const today = new Date();
     let filteredJobs = jobs || [];
-    
+
     if (viewMode === 'day') {
-      // Filter jobs for today
       filteredJobs = jobs?.filter(job => {
         if (!job.serviceDate) return false;
         const jobDate = new Date(job.serviceDate);
         return jobDate.toDateString() === today.toDateString();
       }) || [];
     } else if (viewMode === 'week') {
-      // Filter jobs for current week
       const startOfWeek = new Date(today);
       const day = today.getDay();
-      const diff = day === 0 ? -6 : 1 - day; // Monday start
+      const diff = day === 0 ? -6 : 1 - day;
       startOfWeek.setDate(today.getDate() + diff);
       startOfWeek.setHours(0, 0, 0, 0);
-      
+
       const endOfWeek = new Date(startOfWeek);
       endOfWeek.setDate(startOfWeek.getDate() + 6);
       endOfWeek.setHours(23, 59, 59, 999);
-      
+
       filteredJobs = jobs?.filter(job => {
         if (!job.serviceDate) return false;
         const jobDate = new Date(job.serviceDate);
         return jobDate >= startOfWeek && jobDate <= endOfWeek;
       }) || [];
     } else if (viewMode === 'month') {
-      // Filter jobs for current month
       const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
       const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      
+
       filteredJobs = jobs?.filter(job => {
         if (!job.serviceDate) return false;
         const jobDate = new Date(job.serviceDate);
         return jobDate >= startOfMonth && jobDate <= endOfMonth;
       }) || [];
     }
-    
+
     return {
       totalJobs: filteredJobs.length,
       scheduledJobs: filteredJobs.filter(job => job.serviceDate && job.status !== 'Completed' && job.status !== 'Cancelled').length,
       pendingJobs: filteredJobs.filter(job => job.status === 'In Pending' || job.status === 'Received').length,
-      inProgressJobs: filteredJobs.filter(job => job.status === 'In Repair' || job.status === 'Diagnosing' || job.status === 'On Road' || job.status === 'At Client').length,
+      inProgressJobs: filteredJobs.filter(job => ['In Repair', 'Diagnosing', 'On Road', 'At Client'].includes(job.status)).length,
       completedJobs: filteredJobs.filter(job => job.status === 'Completed').length
     };
   };
 
-  // Calculate progress percentage based on view mode
   const calculateProgress = (viewMode, currentCount) => {
     const limits = {
-      day: 10,    // 10 jobs per day
-      week: 50,   // 50 jobs per week  
-      month: 200  // 200 jobs per month
+      day: 10,
+      week: 50,
+      month: 200,
+      all: 200
     };
-    
-    const limit = limits[viewMode] || limits.day;
+
+    const limit = limits[viewMode] || limits.all;
+    if (!limit) {
+      return 0;
+    }
+
     return Math.min((currentCount / limit) * 100, 100);
   };
 
-  const stats = calculateStatistics('day'); // Default to day view
-  const progressPercentage = calculateProgress('day', stats.totalJobs);
+  const statsScope = 'all';
+  const stats = calculateStatistics(statsScope);
+  const progressPercentage = calculateProgress(statsScope, stats.totalJobs);
   
   // Additional calculations for urgent jobs and other metrics
   const urgentJobs = jobs?.filter(job => job.priority === 'Urgent' && job.status !== 'Completed') || [];
@@ -366,7 +366,7 @@ const StatusView = () => {
         <div className="flex items-center gap-2 mb-3 sm:mb-4">
           <Users className="h-5 w-5 sm:h-6 sm:w-6 text-gray-400" />
           <h3 className="text-lg sm:text-xl font-bold text-white">Status radnika</h3>
-          <span className="text-xs sm:text-sm text-gray-500">({workers?.length || 0} aktivnih)</span>
+          <span className="text-xs sm:text-sm text-gray-500">({workers?.filter?.(w => w.active)?.length || 0} aktivnih)</span>
         </div>
         
         {workers && workers.length > 0 ? (
@@ -427,8 +427,6 @@ const StatusView = () => {
         </div>
       )}
 
-      {/* Workers Status Dashboard */}
-      <WorkersStatusDashboard />
     </div>
   );
 };

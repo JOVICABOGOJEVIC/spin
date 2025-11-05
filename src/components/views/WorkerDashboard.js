@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getJobs } from '../../redux/features/jobSlice';
 import { Calendar, Clock, MapPin, User, CheckCircle, AlertCircle, RefreshCw, X } from 'lucide-react';
@@ -16,6 +16,8 @@ const WorkerDashboard = () => {
   const [calendarViewMode, setCalendarViewMode] = useState('day'); // 'day', 'week', 'month'
   const [filteredJobs, setFilteredJobs] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const hasSeenLoadingRef = useRef(false);
 
   // Callback to receive view mode from calendar
   const handleCalendarViewModeChange = (newViewMode) => {
@@ -41,6 +43,23 @@ const WorkerDashboard = () => {
     console.log('🔄 Manual refresh triggered by user');
     dispatch(getJobs(businessType));
   };
+
+  useEffect(() => {
+    if (loading) {
+      hasSeenLoadingRef.current = true;
+      return;
+    }
+
+    if (hasSeenLoadingRef.current && !hasLoadedOnce) {
+      setHasLoadedOnce(true);
+    }
+  }, [loading, hasLoadedOnce]);
+
+  useEffect(() => {
+    if (!hasLoadedOnce && Array.isArray(jobs) && jobs.length > 0) {
+      setHasLoadedOnce(true);
+    }
+  }, [jobs, hasLoadedOnce]);
 
   useEffect(() => {
     // Get business type from user or use default
@@ -191,7 +210,9 @@ const WorkerDashboard = () => {
   const stats = calculateStatistics(calendarViewMode);
   const progressPercentage = calculateProgress(calendarViewMode, stats.totalJobs);
 
-  if (loading) {
+  const showInitialLoader = !hasLoadedOnce && loading;
+
+  if (showInitialLoader) {
     return (
       <div className="bg-gray-900 min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -203,7 +224,12 @@ const WorkerDashboard = () => {
   const unscheduledJobs = filteredJobs.filter(job => !job.serviceDate || !job.scheduledTime);
 
   return (
-    <div className="bg-gray-900 min-h-screen">
+    <div className="relative bg-gray-900 min-h-screen">
+      {loading && hasLoadedOnce && (
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      )}
       {/* Header */}
       <div className="bg-gray-800 border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

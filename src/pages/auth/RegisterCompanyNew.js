@@ -108,7 +108,7 @@ const RegisterCompanyNew = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex">
+    <div className="min-h-[calc(100vh-4rem)] bg-gray-900 flex">
       {/* Left Side - Register Form */}
       <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl w-full space-y-8">

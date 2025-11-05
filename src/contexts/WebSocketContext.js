@@ -20,7 +20,8 @@ export const WebSocketProvider = ({ children }) => {
   useEffect(() => {
     if (user?.result) {
       // Initialize socket connection
-      const newSocket = io('http://localhost:5000', {
+      const socketURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const newSocket = io(socketURL, {
         transports: ['websocket'],
         autoConnect: true,
       });

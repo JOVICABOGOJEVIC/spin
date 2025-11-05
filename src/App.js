@@ -5,6 +5,10 @@ import "react-toastify/dist/ReactToastify.css";
 import Home from './pages/Home';
 import AuthPage from './pages/auth/AuthPage';
 import Dashboard from './pages/admin/Dashboard';
+import CreateSuperAdmin from './pages/auth/CreateSuperAdmin';
+import VerifyEmail from './pages/auth/VerifyEmail';
+import NotFound from './pages/NotFound';
+import Snowflakes from './components/effects/Snowflakes';
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { setBusinessType, setUser } from './redux/features/authSlice';
@@ -83,13 +87,24 @@ function App() {
 
   return (
     <WebSocketProvider>
-      <div className="font-['Inter',_sans-serif]">
+      <div 
+        className="font-['Inter',_sans-serif]"
+        style={{
+          backgroundColor: 'var(--color-background, #ffffff)',
+          color: 'var(--color-text, #1f2937)',
+          minHeight: '100vh'
+        }}
+      >
+        <Snowflakes />
         <BrowserRouter>
           <ToastContainer autoClose={2000} />
           <Routes>
             <Route path='/' element={<Home />} />
             <Route path='/auth/*' element={<AuthPage />} />
+            <Route path='/verify-email' element={<VerifyEmail />} />
+            <Route path='/superadmin' element={<CreateSuperAdmin />} />
             <Route path='/dashboard/*' element={<Dashboard />} />
+            <Route path='*' element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </div>

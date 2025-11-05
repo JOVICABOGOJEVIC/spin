@@ -11,6 +11,12 @@
   --color-error: #ef4444;
   --color-success: #10b981;
   --color-warning: #f59e0b;
+  
+  /* Card and container colors */
+  --card-bg: #ffffff;
+  --card-border: #e5e7eb;
+  --container-bg: #ffffff;
+  --surface-bg: #f9fafb;
 
   /* Navigation specific colors */
   --nav-bg: #1e293b;
@@ -377,62 +383,77 @@
   --nav-active-text: #ffffff;
 }
 
-/* Appliance Repair Theme */
+/* Appliance Repair Theme - Tamno zelena paleta sa defaultnim svetlim backgroundom */
 [data-theme="appliance-repair"],
 [data-theme-preview="appliance-repair"] {
-  --color-primary: #4299e1;
-  --color-secondary: #718096;
-  --color-accent: #2b6cb0;
-  --color-background: #f7fafc;
-  --color-text: #2d3748;
-  --color-border: #e2e8f0;
-  --color-input: #edf2f7;
-  --color-error: #e53e3e;
-  --color-success: #38a169;
-  --color-warning: #d69e2e;
+  /* Base colors - tamno zelena paleta sa svetlim backgroundom */
+  --color-primary: #166534;
+  --color-secondary: #4b5563;
+  --color-accent: #22c55e;
+  --color-background: #f0fdf4;
+  --color-text: #1f2937;
+  --color-border: #d1fae5;
+  --color-input: #f0fdf4;
+  --color-error: #ef4444;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
   
-  /* Navigation */
-  --nav-bg: #2b6cb0;
-  --nav-text: #e2e8f0;
+  /* Card and container colors */
+  --card-bg: #ffffff;
+  --card-border: #d1fae5;
+  --container-bg: #ffffff;
+  --surface-bg: #f0fdf4;
+
+  /* Navigation specific colors */
+  --nav-bg: #064e3b;
+  --nav-text: #86efac;
   --nav-text-hover: #ffffff;
-  --nav-bg-hover: rgba(43, 108, 176, 0.5);
-  --nav-border: #2c5282;
-  --nav-active-bg: #2c5282;
+  --nav-bg-hover: rgba(134, 239, 172, 0.1);
+  --nav-border: rgba(134, 239, 172, 0.2);
+  --nav-active-bg: rgba(134, 239, 172, 0.2);
   --nav-active-text: #ffffff;
 
   /* Calendar specific colors */
   --calendar-bg: #ffffff;
-  --calendar-border: #e2e8f0;
-  --calendar-text: #2d3748;
-  --calendar-header-bg: #edf2f7;
-  --calendar-today-bg: #bee3f8;
-  --calendar-selected-bg: #4299e1;
+  --calendar-border: #d1fae5;
+  --calendar-text: #1f2937;
+  --calendar-header-bg: #f0fdf4;
+  --calendar-today-bg: #d1fae5;
+  --calendar-selected-bg: #166534;
   --calendar-selected-text: #ffffff;
-  --calendar-event-bg: #2b6cb0;
+  --calendar-event-bg: #22c55e;
   --calendar-event-text: #ffffff;
 
   /* Metrics/Dashboard cards */
   --metrics-card-bg: #ffffff;
-  --metrics-card-border: #e2e8f0;
-  --metrics-text-primary: #2d3748;
-  --metrics-text-secondary: #718096;
-  --metrics-value-color: #4299e1;
-  --metrics-icon-bg: rgba(66, 153, 225, 0.1);
-  --metrics-icon-color: #4299e1;
+  --metrics-card-border: #d1fae5;
+  --metrics-text-primary: #1f2937;
+  --metrics-text-secondary: #6b7280;
+  --metrics-value-color: #166534;
+  --metrics-icon-bg: rgba(22, 101, 52, 0.1);
+  --metrics-icon-color: #166534;
 
   /* Form specific colors */
   --form-bg: #ffffff;
-  --form-border: #e2e8f0;
-  --form-input-bg: #f7fafc;
-  --form-input-border: #cbd5e0;
-  --form-input-text: #2d3748;
-  --form-label-text: #2c5282;
-  --form-placeholder: #718096;
-  --form-focus-border: #4299e1;
-  --form-focus-ring: rgba(66, 153, 225, 0.2);
-  
+  --form-border: #d1fae5;
+  --form-input-bg: #f0fdf4;
+  --form-input-border: #bbf7d0;
+  --form-input-text: #1f2937;
+  --form-label-text: #166534;
+  --form-placeholder: #9ca3af;
+  --form-focus-border: #166534;
+  --form-focus-ring: rgba(22, 101, 52, 0.2);
+
+  /* Backgrounds */
+  --header-bg: #166534;
+  --header-bg-image: linear-gradient(135deg, #166534 0%, #064e3b 100%);
+  --mobile-header-bg-image: linear-gradient(90deg, #166534 0%, #064e3b 100%);
+  --nav-bg-image: linear-gradient(180deg, #064e3b 0%, #022c22 100%);
+  --form-bg-image: radial-gradient(circle at top right, #d1fae5 0%, transparent 60%);
+  --list-bg-image: linear-gradient(180deg, #f0fdf4 0%, transparent 100%);
+
   /* Typography */
-  --font-family: 'Roboto', sans-serif;
+  --font-family: 'Inter', sans-serif;
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-bold: 700;

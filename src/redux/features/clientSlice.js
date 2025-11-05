@@ -1,15 +1,11 @@
 import { createSlice, createAsyncThunk, createAction } from "@reduxjs/toolkit";
-import * as api from '../api';
 import { toast } from "react-toastify";
 import { 
-  getClients,
+  fetchClients as getClients,
   createClient, 
   updateClient, 
   deleteClient 
 } from '../api';
-
-// Update API URL to match the server configuration
-const API_URL = '/client'; // No need for full URL as it's handled by API instance
 
 // Mock clients for development
 const generateMockClients = () => {
@@ -75,7 +71,7 @@ export const createClientAsync = createAsyncThunk(
   async (clientData, { rejectWithValue }) => {
     try {
       console.log('Making API request with data:', clientData);
-      const response = await api.API.post(API_URL, clientData);
+      const response = await createClient(clientData);
       console.log('API response:', response.data);
       return response.data;
     } catch (error) {
@@ -95,7 +91,7 @@ export const updateClientAsync = createAsyncThunk(
   async ({ id, updatedClientData }, { rejectWithValue }) => {
     try {
       console.log('Updating client:', id, updatedClientData);
-      const response = await api.API.put(`${API_URL}/${id}`, updatedClientData);
+      const response = await updateClient({ id, clientData: updatedClientData });
       console.log('Update response:', response.data);
       return response.data;
     } catch (error) {
@@ -110,7 +106,7 @@ export const deleteClientAsync = createAsyncThunk(
   'client/deleteClient',
   async (id, { rejectWithValue }) => {
     try {
-      await api.API.delete(`${API_URL}/${id}`);
+      await deleteClient(id);
       return id;
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.response?.data || 'Failed to delete client';

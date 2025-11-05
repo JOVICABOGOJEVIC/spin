@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
   fetchClientsAsync,
@@ -9,12 +9,15 @@ import {
   clearError
 } from '../../redux/features/clientSlice';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { 
   Users, UserPlus, Edit, Trash2, Mail, MapPin, Clock,
-  Calendar, Search, PlusCircle, X, Pencil, Phone, FileText, UserX, Loader2, Globe
+  Calendar, Search, PlusCircle, X, Pencil, Phone, FileText, UserX, Loader2, Globe, List
 } from 'lucide-react';
 import { COUNTRY_DATA } from '../../utils/countryData';
 import './ClientsView.css';
+import LoadingSpinner from '../ui/LoadingSpinner';
+import { getJobs } from '../../redux/features/jobSlice';
 
 // Phone prefixes mapping
 const COUNTRY_PREFIXES = {
@@ -37,6 +40,7 @@ const COUNTRY_NAMES = {
 };
 
 const ClientsView = () => {
+  const { t } = useTranslation();
   const [showForm, setShowForm] = useState(false);
   const [currentClient, setCurrentClientState] = useState(null);
   const [formData, setFormData] = useState({
@@ -54,10 +58,16 @@ const ClientsView = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [formError, setFormError] = useState('');
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [historyClient, setHistoryClient] = useState(null);
   
   const dispatch = useDispatch();
   const { clients, filteredClients, loading, error } = useSelector((state) => state.client);
   const { user } = useSelector((state) => state.auth);
+  const subscriptionPackage = user?.result?.subscriptionPackage || 'free';
+  const packageUsage = user?.result?.packageUsage || {};
+  const jobState = useSelector((state) => state.job || { jobs: [], loading: false });
+  const jobList = Array.isArray(jobState.jobs) ? jobState.jobs : [];
+  const jobsLoading = jobState.loading;
   
   const userCountryCode = user?.result?.countryCode?.toLowerCase() || 'rs'; // Default to Serbia if not set
   const phonePrefix = COUNTRY_PREFIXES[userCountryCode] || '381'; // Default to Serbian prefix if country code not found
@@ -173,9 +183,19 @@ const ClientsView = () => {
       }
     } catch (error) {
       console.error('Error details:', error);
-      const errorMessage = error?.response?.data?.message || error.message || 'An error occurred while saving the client';
-      setFormError(errorMessage);
-      toast.error(errorMessage);
+      // Handle limit reached error
+      if (error?.limitReached || error?.payload?.limitReached) {
+        const limitData = error?.payload || error;
+        const limitMessage = limitData.message || `Dostigli ste mesečni limit od ${limitData.limit || 100} adresa za Free paket.`;
+        setFormError(limitMessage);
+        toast.error(limitMessage, {
+          duration: 6000,
+        });
+      } else {
+        const errorMessage = error?.payload?.message || error?.response?.data?.message || error.message || 'An error occurred while saving the client';
+        setFormError(errorMessage);
+        toast.error(errorMessage);
+      }
     }
   };
   
@@ -229,6 +249,10 @@ const ClientsView = () => {
     setShowForm(true);
   };
   
+  const businessType = useMemo(() => {
+    return user?.result?.businessType || sessionStorage.getItem('businessType') || '';
+  }, [user]);
+
   const formatDate = (dateString) => {
     if (!dateString) return 'Never';
     
@@ -237,6 +261,70 @@ const ClientsView = () => {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleString('sr-RS', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const normalizePhone = (value) => (value || '').replace(/\D/g, '');
+
+  const clientHistoryJobs = useMemo(() => {
+    if (!historyClient) return [];
+
+    const normalizedPhone = normalizePhone(historyClient.phone);
+    const normalizedName = historyClient.name?.toLowerCase?.() || '';
+
+    return jobList
+      .filter((job) => {
+        if (!job) return false;
+
+        if (historyClient._id && job.clientId && job.clientId === historyClient._id) {
+          return true;
+        }
+
+        const jobPhone = normalizePhone(job.clientPhone);
+        if (normalizedPhone && jobPhone && normalizedPhone === jobPhone) {
+          return true;
+        }
+
+        if (normalizedName && job.clientName?.toLowerCase?.() === normalizedName) {
+          return true;
+        }
+
+        return false;
+      })
+      .sort((a, b) => {
+        const aDate = new Date(a.serviceDate || a.createdAt || 0).getTime();
+        const bDate = new Date(b.serviceDate || b.createdAt || 0).getTime();
+        return bDate - aDate;
+      });
+  }, [historyClient, jobList]);
+
+  useEffect(() => {
+    if (historyClient && jobList.length === 0 && !jobsLoading) {
+      dispatch(getJobs(businessType));
+    }
+  }, [historyClient, jobList.length, jobsLoading, dispatch, businessType]);
+
+  const handleHistory = (client) => {
+    setHistoryClient(client);
+    if (jobList.length === 0 && !jobsLoading) {
+      dispatch(getJobs(businessType));
+    }
+  };
+
+  const closeHistoryModal = () => {
+    setHistoryClient(null);
   };
   
   const renderTableView = () => {
@@ -253,8 +341,11 @@ const ClientsView = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredClients.map((client) => (
-              <tr key={client._id} className="hover:bg-gray-700 border-b border-gray-700 transition-colors">
+            {filteredClients
+              .slice()
+              .sort((a, b) => a.name.localeCompare(b.name, 'sr', { sensitivity: 'base' }))
+              .map((client) => (
+                <tr key={client._id} className="hover:bg-gray-700 border-b border-gray-700 transition-colors">
                 <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-white">{client.name}</div>
                 </td>
@@ -294,24 +385,33 @@ const ClientsView = () => {
                     {client.description || '-'}
                   </div>
                 </td>
-                <td className="px-4 sm:px-6 py-4 text-right space-x-2">
-                  <button
-                    onClick={() => handleEdit(client)}
-                    className="text-blue-400 hover:text-blue-300 mr-3 transition-colors"
-                    title="Edit Client"
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(client._id)}
-                    className="text-red-400 hover:text-red-300 transition-colors"
-                    title="Delete Client"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                <td className="px-4 sm:px-6 py-4 text-right">
+                  <div className="flex justify-end items-center gap-2">
+                    <button
+                      onClick={() => handleHistory(client)}
+                      className="text-amber-400 hover:text-amber-300 transition-colors"
+                      title="Istorija servisa"
+                    >
+                      <List size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleEdit(client)}
+                      className="text-blue-400 hover:text-blue-300 transition-colors"
+                      title="Edit Client"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(client._id)}
+                      className="text-red-400 hover:text-red-300 transition-colors"
+                      title="Delete Client"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </td>
               </tr>
-            ))}
+              ))}
           </tbody>
         </table>
       </div>
@@ -323,7 +423,10 @@ const ClientsView = () => {
   const renderCardView = () => {
     return (
       <div className="grid grid-cols-1 gap-4">
-        {filteredClients.map(client => (
+        {filteredClients
+          .slice()
+          .sort((a, b) => a.name.localeCompare(b.name, 'sr', { sensitivity: 'base' }))
+          .map(client => (
           <div
             key={client._id}
             className="bg-gray-800 p-4 rounded-lg shadow"
@@ -342,6 +445,13 @@ const ClientsView = () => {
                 </div>
               </div>
               <div className="flex space-x-2">
+                <button
+                  onClick={() => handleHistory(client)}
+                  className="text-amber-400 hover:text-amber-300"
+                  title="Istorija servisa"
+                >
+                  <List size={16} />
+                </button>
                 <button
                   onClick={() => setExpandedCard(expandedCard === client._id ? null : client._id)}
                   className="text-blue-400 hover:text-blue-300"
@@ -605,107 +715,189 @@ const ClientsView = () => {
   );
 
   return (
-    <div className="bg-gray-900 min-h-screen p-2 sm:p-4">
-      {/* Header */}
-      <div className="bg-gray-800 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6 shadow-lg">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl sm:text-2xl font-bold text-white">Clients</h2>
-          {!showForm && (
-            <button 
-              onClick={showAddForm}
-              className="flex items-center gap-2 bg-blue-600 text-white px-3 py-2 sm:px-4 sm:py-2 text-sm rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <UserPlus size={18} />
-              <span className="hidden sm:inline">Add New Client</span>
-              <span className="sm:hidden">Add</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {!showForm && (
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Search by name, phone, email, or address..."
-              value={searchTerm}
-              onChange={handleInputChange}
-              className="w-full pl-10 pr-4 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {searchTerm && (
+    <>
+      {historyClient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-gray-900 w-full max-w-3xl max-h-[85vh] overflow-hidden rounded-xl border border-gray-700 shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Istorija popravki</h3>
+                <p className="text-sm text-gray-400">{historyClient.name || 'Nepoznat klijent'}</p>
+              </div>
               <button
-                onClick={() => {
-                  setSearchTerm('');
-                  dispatch(searchClients(''));
-                }}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                onClick={closeHistoryModal}
+                className="text-gray-400 hover:text-white transition-colors"
+                aria-label="Zatvori istoriju"
               >
-                <X size={16} />
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[70vh]">
+              {jobsLoading && jobList.length === 0 ? (
+                <div className="flex justify-center py-10">
+                  <LoadingSpinner size="lg" color="white" />
+                </div>
+              ) : clientHistoryJobs.length === 0 ? (
+                <div className="text-center text-gray-400 py-10">
+                  <p>Za ovog klijenta trenutno nema evidentiranih popravki.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-800">
+                    <thead className="bg-gray-800/50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Datum</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Opis</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Prioritet</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Dodeljeno</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-800">
+                      {clientHistoryJobs.map((job) => (
+                        <tr key={job._id} className="hover:bg-gray-800/50 transition-colors">
+                          <td className="px-4 py-3 text-sm text-gray-200">
+                            {formatDateTime(job.serviceDate || job.createdAt)}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900/40 text-blue-200">
+                              {job.status || 'N/A'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-300 max-w-xs">
+                            <div className="truncate" title={job.issueDescription}>
+                              {job.issueDescription || '-'}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-200">{job.priority || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-300">{job.assignedTo || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-gray-900 min-h-screen p-2 sm:p-4">
+        {/* Header */}
+        <div className="bg-gray-800 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6 shadow-lg">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl sm:text-2xl font-bold text-white">Clients</h2>
+              {subscriptionPackage === 'free' && (
+                <div className="bg-yellow-900/30 border border-yellow-700 rounded-lg px-3 py-2 text-xs sm:text-sm">
+                  <div className="text-yellow-400 font-medium">
+                    {t('superAdmin.addressesUsed', 'Iskorišćeno')}: {packageUsage.addressesThisMonth || 0} / {packageUsage.addressesLimit || 100}
+                  </div>
+                  {packageUsage.addressesThisMonth >= (packageUsage.addressesLimit || 100) && (
+                    <div className="text-red-400 text-xs mt-1">
+                      {t('superAdmin.addressLimitReached', 'Limit!')}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            {!showForm && (
+              <button 
+                onClick={showAddForm}
+                className="flex items-center gap-2 bg-blue-600 text-white px-3 py-2 sm:px-4 sm:py-2 text-sm rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <UserPlus size={18} />
+                <span className="hidden sm:inline">Add New Client</span>
+                <span className="sm:hidden">Add</span>
               </button>
             )}
           </div>
-          <p className="text-sm text-gray-400 mt-1 ml-1">
-            {filteredClients.length === 0 && searchTerm 
-              ? 'No matches found' 
-              : filteredClients.length < clients.length 
-                ? `Found ${filteredClients.length} matching clients` 
-                : ''}
-          </p>
         </div>
-      )}
 
-      {showForm ? (
-        renderForm()
-      ) : loading ? (
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-        </div>
-      ) : filteredClients.length > 0 ? (
-        <div>
-          <div className="hidden md:block">
-            {renderTableView()}
+        {!showForm && (
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <input
+                type="text"
+                placeholder="Search by name, phone, email, or address..."
+                value={searchTerm}
+                onChange={handleInputChange}
+                className="w-full pl-10 pr-4 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    dispatch(searchClients(''));
+                  }}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+            <p className="text-sm text-gray-400 mt-1 ml-1">
+              {filteredClients.length === 0 && searchTerm 
+                ? 'No matches found' 
+                : filteredClients.length < clients.length 
+                  ? `Found ${filteredClients.length} matching clients` 
+                  : ''}
+            </p>
           </div>
-          <div className="md:hidden">
-            {renderCardView()}
+        )}
+
+        {showForm ? (
+          renderForm()
+        ) : loading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
           </div>
-        </div>
-      ) : clients.length === 0 ? (
-        <div className="text-center py-12">
-          <UserX size={48} className="mx-auto text-gray-500 mb-4" />
-          <h3 className="text-xl font-medium text-gray-300 mb-2">No clients yet</h3>
-          <p className="text-gray-400 mb-4">
-            You haven't added any clients to your list
-          </p>
-          <button 
-            onClick={showAddForm}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            <PlusCircle size={16} className="mr-2" />
-            Add your first client
-          </button>
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <Search size={48} className="mx-auto text-gray-500 mb-4" />
-          <h3 className="text-xl font-medium text-gray-300 mb-2">No matches found</h3>
-          <p className="text-gray-400 mb-4">
-            No clients match your search criteria: "{searchTerm}"
-          </p>
-          <button 
-            onClick={() => {
-              setSearchTerm('');
-              dispatch(searchClients(''));
-            }}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            <X size={16} className="mr-2" />
-            Clear search
-          </button>
-        </div>
-      )}
-    </div>
+        ) : filteredClients.length > 0 ? (
+          <div>
+            <div className="hidden md:block">
+              {renderTableView()}
+            </div>
+            <div className="md:hidden">
+              {renderCardView()}
+            </div>
+          </div>
+        ) : clients.length === 0 ? (
+          <div className="text-center py-12">
+            <UserX size={48} className="mx-auto text-gray-500 mb-4" />
+            <h3 className="text-xl font-medium text-gray-300 mb-2">No clients yet</h3>
+            <p className="text-gray-400 mb-4">
+              You haven't added any clients to your list
+            </p>
+            <button 
+              onClick={showAddForm}
+              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              <PlusCircle size={16} className="mr-2" />
+              Add your first client
+            </button>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <Search size={48} className="mx-auto text-gray-500 mb-4" />
+            <h3 className="text-xl font-medium text-gray-300 mb-2">No matches found</h3>
+            <p className="text-gray-400 mb-4">
+              No clients match your search criteria: "{searchTerm}"
+            </p>
+            <button 
+              onClick={() => {
+                setSearchTerm('');
+                dispatch(searchClients(''));
+              }}
+              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              <X size={16} className="mr-2" />
+              Clear search
+            </button>
+          </div>
+        )}
+      </div>
+    </>
   );
 };
 

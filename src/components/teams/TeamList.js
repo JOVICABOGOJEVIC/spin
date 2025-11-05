@@ -43,15 +43,37 @@ const TeamList = () => {
     }
   };
 
-  const getWorkerNames = (workerIds) => {
-    if (!workerIds || !Array.isArray(workerIds)) return 'Nema dodeljenih radnika';
-    return workerIds
-      .map(id => {
-        const worker = workers.find(w => w._id === id);
+  const getWorkerNames = (members) => {
+    if (!members || !Array.isArray(members) || members.length === 0) {
+      return 'Nema dodeljenih radnika';
+    }
+
+    const memberNames = members
+      .map((member) => {
+        if (!member) return null;
+
+        // If backend already populated the worker document
+        if (typeof member === 'object') {
+          if (member.firstName || member.lastName) {
+            return `${member.firstName || ''} ${member.lastName || ''}`.trim();
+          }
+
+          if (member._id) {
+            const worker = workers.find((w) => w._id === member._id);
+            if (worker) {
+              return `${worker.firstName} ${worker.lastName}`;
+            }
+          }
+          return null;
+        }
+
+        // Otherwise treat it as an ID
+        const worker = workers.find((w) => w._id === member);
         return worker ? `${worker.firstName} ${worker.lastName}` : null;
       })
-      .filter(name => name)
-      .join(', ') || 'Nema dodeljenih radnika';
+      .filter(Boolean);
+
+    return memberNames.length > 0 ? memberNames.join(', ') : 'Nema dodeljenih radnika';
   };
 
   if (loading) {

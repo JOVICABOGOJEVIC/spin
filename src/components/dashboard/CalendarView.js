@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { 
   ChevronLeft, ChevronRight, Plus, 
   Calendar as CalendarIcon, Clock, X, AlertCircle
@@ -16,17 +17,30 @@ for (let hour = 7; hour < 20; hour++) {
   HOURS.push({ hour, minute: 30 });
 }
 
-const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
-];
+// These will be translated in the component using useTranslation
 
 const CalendarView = () => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { jobs = [] } = useSelector((state) => state.job || { jobs: [] });
   const { calendarJobs = [] } = useSelector((state) => state.dashboard || { calendarJobs: [] });
+  
+  const DAYS_OF_WEEK = [
+    t('calendar.days.monday'), t('calendar.days.tuesday'), t('calendar.days.wednesday'), 
+    t('calendar.days.thursday'), t('calendar.days.friday'), t('calendar.days.saturday'), 
+    t('calendar.days.sunday')
+  ];
+  const DAYS_SHORT = [
+    t('calendar.daysShort.mon'), t('calendar.daysShort.tue'), t('calendar.daysShort.wed'), 
+    t('calendar.daysShort.thu'), t('calendar.daysShort.fri'), t('calendar.daysShort.sat'), 
+    t('calendar.daysShort.sun')
+  ];
+  const MONTHS = [
+    t('calendar.months.january'), t('calendar.months.february'), t('calendar.months.march'), 
+    t('calendar.months.april'), t('calendar.months.may'), t('calendar.months.june'),
+    t('calendar.months.july'), t('calendar.months.august'), t('calendar.months.september'), 
+    t('calendar.months.october'), t('calendar.months.november'), t('calendar.months.december')
+  ];
   
   const [currentDate, setCurrentDate] = useState(moment());
   const [calendarView, setCalendarView] = useState(window.innerWidth < 768 ? 'mobile' : 'month');
@@ -189,7 +203,7 @@ const CalendarView = () => {
   // Handle click on a time slot
   const handleTimeSlotClick = (date, timeSlot) => {
     if (isSlotBooked(date, timeSlot)) {
-      setErrorMessage('This time slot is already booked');
+      setErrorMessage(t('calendar.timeSlotBooked'));
       setTimeout(() => setErrorMessage(''), 3000);
       return;
     }
@@ -432,7 +446,7 @@ const CalendarView = () => {
             <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-lg shadow-xl">
               <div className="flex items-center justify-between p-4 border-b">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Create New Job</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">{t('jobs.createNewJob')}</h2>
                   <p className="text-sm text-gray-500 mt-1">
                     {selectedSlot ? `Adding job for ${selectedSlot.displayDate} at ${selectedSlot.displayTime}` : 'Select date and time'}
                   </p>
@@ -691,7 +705,7 @@ const CalendarView = () => {
                 className="flex items-center px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700"
               >
                 <Plus className="h-4 w-4 mr-1" />
-                New Job
+                {t('jobs.newJob')}
               </button>
             </div>
 
@@ -704,7 +718,7 @@ const CalendarView = () => {
         {showForm && (
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-xl font-bold">New Job</h2>
+              <h2 className="text-xl font-bold">{t('jobs.newJob')}</h2>
               {selectedSlot && (
                 <p className="text-sm text-gray-400 mt-1">
                   Adding job for {selectedSlot.displayDate} at {selectedSlot.displayTime}

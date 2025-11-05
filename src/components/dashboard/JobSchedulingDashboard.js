@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { updateJob } from '../../redux/features/jobSlice';
 import JobQueue from './JobQueue';
 import CalendarWithDragDrop from './CalendarWithDragDrop';
@@ -8,10 +9,13 @@ import { Plus, Calendar, List } from 'lucide-react';
 
 const JobSchedulingDashboard = () => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { jobs, loading } = useSelector((state) => state.job);
   const [selectedJob, setSelectedJob] = useState(null);
   const [showJobForm, setShowJobForm] = useState(false);
   const [viewMode, setViewMode] = useState('split'); // 'split', 'queue', 'calendar'
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const hasSeenLoadingRef = useRef(false);
 
   // Jobs are already loaded by JobsDashboard parent component
   // No need to load them again here
@@ -74,8 +78,27 @@ const JobSchedulingDashboard = () => {
     setSelectedJob(null);
     // Jobs will be refreshed by parent component
   };
+  
+  useEffect(() => {
+    if (loading) {
+      hasSeenLoadingRef.current = true;
+      return;
+    }
 
-  if (loading) {
+    if (hasSeenLoadingRef.current && !hasLoadedOnce) {
+      setHasLoadedOnce(true);
+    }
+  }, [loading, hasLoadedOnce]);
+
+  useEffect(() => {
+    if (!hasLoadedOnce && Array.isArray(jobs) && jobs.length > 0) {
+      setHasLoadedOnce(true);
+    }
+  }, [jobs, hasLoadedOnce]);
+
+  const showInitialLoader = loading && !hasLoadedOnce;
+
+  if (showInitialLoader) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -84,11 +107,16 @@ const JobSchedulingDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 p-2 sm:p-4">
+    <div className="relative min-h-screen bg-gray-900 p-2 sm:p-4">
+      {loading && hasLoadedOnce && (
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      )}
       {/* Header - Mobile Responsive */}
       <div className="mb-3 sm:mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <h1 className="text-base sm:text-2xl font-bold text-white">Job Scheduling</h1>
+          <h1 className="text-base sm:text-2xl font-bold text-white">{t('jobs.jobScheduling')}</h1>
           
           {/* View Mode Buttons - Mobile Responsive */}
           <div className="flex flex-wrap gap-1 sm:gap-2">
@@ -100,8 +128,8 @@ const JobSchedulingDashboard = () => {
                   : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
             >
-              <span className="hidden sm:inline">Split View</span>
-              <span className="sm:hidden">Split</span>
+              <span className="hidden sm:inline">{t('jobs.splitView')}</span>
+              <span className="sm:hidden">{t('jobs.split')}</span>
             </button>
             <button
               onClick={() => setViewMode('queue')}
@@ -112,8 +140,8 @@ const JobSchedulingDashboard = () => {
               }`}
             >
               <List className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Queue Only</span>
-              <span className="sm:hidden ml-1">Queue</span>
+              <span className="hidden sm:inline">{t('jobs.queueOnly')}</span>
+              <span className="sm:hidden ml-1">{t('jobs.queue')}</span>
             </button>
             <button
               onClick={() => setViewMode('calendar')}
@@ -124,16 +152,16 @@ const JobSchedulingDashboard = () => {
               }`}
             >
               <Calendar className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Calendar Only</span>
-              <span className="sm:hidden ml-1">Calendar</span>
+              <span className="hidden sm:inline">{t('jobs.calendarOnly')}</span>
+              <span className="sm:hidden ml-1">{t('jobs.calendar')}</span>
             </button>
             <button
               onClick={() => setShowJobForm(true)}
               className="px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
             >
               <Plus className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-              <span className="hidden sm:inline">New Job</span>
-              <span className="sm:hidden ml-1">New</span>
+              <span className="hidden sm:inline">{t('jobs.newJob')}</span>
+              <span className="sm:hidden ml-1">{t('common.new')}</span>
             </button>
           </div>
         </div>
@@ -193,13 +221,13 @@ const JobSchedulingDashboard = () => {
         <div className="fixed right-4 top-20 w-80 bg-gray-800 rounded-lg p-4 shadow-lg">
           <h3 className="text-lg font-medium text-white mb-2">Job Details</h3>
           <div className="space-y-2 text-sm text-gray-300">
-            <div><strong>Client:</strong> {selectedJob.clientName}</div>
-            <div><strong>Phone:</strong> {selectedJob.clientPhone}</div>
+            <div><strong>{t('jobs.client')}:</strong> {selectedJob.clientName}</div>
+            <div><strong>{t('jobs.phone')}:</strong> {selectedJob.clientPhone}</div>
             <div><strong>Issue:</strong> {selectedJob.issueDescription}</div>
-            <div><strong>Status:</strong> {selectedJob.status}</div>
+            <div><strong>{t('jobs.status')}:</strong> {selectedJob.status}</div>
             <div><strong>Priority:</strong> {selectedJob.priority}</div>
             {selectedJob.serviceDate && (
-              <div><strong>Scheduled:</strong> {new Date(selectedJob.serviceDate).toLocaleDateString()} {selectedJob.scheduledTime}</div>
+              <div><strong>{t('jobs.scheduled')}:</strong> {new Date(selectedJob.serviceDate).toLocaleDateString()} {selectedJob.scheduledTime}</div>
             )}
           </div>
           <button

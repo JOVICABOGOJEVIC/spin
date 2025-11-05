@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { Calendar, Clock, User, MapPin, Edit, Trash2, X, CheckCircle } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { updateJob, deleteJob, getJobs } from '../../redux/features/jobSlice';
 import { toast } from 'react-toastify';
 import JobForm from '../forms/JobForm';
@@ -23,6 +24,7 @@ const parseLocalDate = (dateString) => {
 
 const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeChange, onJobSelect }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { user, userType } = useSelector((state) => state.auth);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
@@ -281,16 +283,24 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
 
   const calendarDays = generateCalendarDays();
   const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    t('calendar.months.january'), t('calendar.months.february'), t('calendar.months.march'), 
+    t('calendar.months.april'), t('calendar.months.may'), t('calendar.months.june'),
+    t('calendar.months.july'), t('calendar.months.august'), t('calendar.months.september'), 
+    t('calendar.months.october'), t('calendar.months.november'), t('calendar.months.december')
   ];
   
   const monthNamesShort = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    t('calendar.monthsShort.jan'), t('calendar.monthsShort.feb'), t('calendar.monthsShort.mar'), 
+    t('calendar.monthsShort.apr'), t('calendar.monthsShort.may'), t('calendar.monthsShort.jun'),
+    t('calendar.monthsShort.jul'), t('calendar.monthsShort.aug'), t('calendar.monthsShort.sep'), 
+    t('calendar.monthsShort.oct'), t('calendar.monthsShort.nov'), t('calendar.monthsShort.dec')
   ];
 
-  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const dayNames = [
+    t('calendar.daysShort.mon'), t('calendar.daysShort.tue'), t('calendar.daysShort.wed'), 
+    t('calendar.daysShort.thu'), t('calendar.daysShort.fri'), t('calendar.daysShort.sat'), 
+    t('calendar.daysShort.sun')
+  ];
 
   // Get display title based on view mode
   const getDisplayTitle = () => {
@@ -361,7 +371,7 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
                 viewMode === 'day' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
             >
-              Day
+              {t('calendar.day')}
             </button>
             <button
               onClick={() => setViewMode('week')}
@@ -369,7 +379,7 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
                 viewMode === 'week' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
             >
-              Week
+              {t('calendar.week')}
             </button>
             <button
               onClick={() => setViewMode('month')}
@@ -377,7 +387,7 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
                 viewMode === 'month' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
             >
-              Month
+              {t('calendar.month')}
             </button>
           </div>
           
@@ -392,7 +402,7 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
             onClick={() => setCurrentDate(new Date())}
             className="px-2 py-0.5 text-xs bg-gray-700 text-white rounded hover:bg-gray-600"
           >
-            Today
+            {t('calendar.today')}
           </button>
           <button
             onClick={handleNext}

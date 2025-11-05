@@ -1,7 +1,7 @@
-import React from 'react'
-import HeaderSection from '../../header/HeaderSection.js'
-import ThemeSelector from '../../ThemeSelector'
-import { useTheme } from '../../../hooks/useTheme'
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import ThemeSelector from '../../ThemeSelector';
+import { useTheme } from '../../../hooks/useTheme';
 import { 
   Wrench, 
   Car, 
@@ -9,123 +9,131 @@ import {
   Monitor, 
   HardHat, 
   Zap,
-  Wind
+  Wind,
+  Check
 } from 'lucide-react';
 
 const themes = [
   { 
     id: 'appliance-repair',
-    name: 'Appliance Repair',
+    nameKey: 'applianceRepair',
     icon: <Wrench className="w-8 h-8" />,
-    description: 'Theme optimized for appliance repair businesses',
+    descriptionKey: 'applianceRepairDesc',
     features: [
-      'Clean and professional design',
-      'Easy-to-read repair forms',
-      'Organized spare parts listings',
-      'Service history tracking'
+      'feature1',
+      'feature2',
+      'feature3',
+      'feature4'
     ]
   },
   { 
     id: 'auto-service',
-    name: 'Auto Service',
+    nameKey: 'autoService',
     icon: <Car className="w-8 h-8" />,
-    description: 'Perfect for auto repair and service centers',
+    descriptionKey: 'autoServiceDesc',
     features: [
-      'Vehicle service tracking',
-      'Parts inventory management',
-      'Service scheduling interface',
-      'Maintenance history logs'
+      'feature1',
+      'feature2',
+      'feature3',
+      'feature4'
     ]
   },
   { 
     id: 'painting-service',
-    name: 'Painting Service',
+    nameKey: 'paintingService',
     icon: <PaintBucket className="w-8 h-8" />,
-    description: 'Designed for painting and decoration services',
+    descriptionKey: 'paintingServiceDesc',
     features: [
-      'Project timeline views',
-      'Material calculations',
-      'Color scheme management',
-      'Quote generation tools'
+      'feature1',
+      'feature2',
+      'feature3',
+      'feature4'
     ]
   },
   { 
     id: 'it-service',
-    name: 'IT Service',
+    nameKey: 'itService',
     icon: <Monitor className="w-8 h-8" />,
-    description: 'Suitable for IT and tech services',
+    descriptionKey: 'itServiceDesc',
     features: [
-      'Ticket tracking system',
-      'Network monitoring tools',
-      'Asset management',
-      'Service level tracking'
+      'feature1',
+      'feature2',
+      'feature3',
+      'feature4'
     ]
   },
   { 
     id: 'construction',
-    name: 'Construction',
+    nameKey: 'construction',
     icon: <HardHat className="w-8 h-8" />,
-    description: 'Built for construction and building services',
+    descriptionKey: 'constructionDesc',
     features: [
-      'Project management tools',
-      'Material tracking',
-      'Safety compliance forms',
-      'Progress reporting'
+      'feature1',
+      'feature2',
+      'feature3',
+      'feature4'
     ]
   },
   { 
     id: 'electrical-service',
-    name: 'Electrical Service',
+    nameKey: 'electricalService',
     icon: <Zap className="w-8 h-8" />,
-    description: 'Designed for electrical contractors',
+    descriptionKey: 'electricalServiceDesc',
     features: [
-      'Installation tracking',
-      'Safety compliance tools',
-      'Parts inventory system',
-      'Service scheduling'
+      'feature1',
+      'feature2',
+      'feature3',
+      'feature4'
     ]
   },
   { 
     id: 'hvac-service',
-    name: 'HVAC Service',
+    nameKey: 'hvacService',
     icon: <Wind className="w-8 h-8" />,
-    description: 'Perfect for HVAC maintenance and repair',
+    descriptionKey: 'hvacServiceDesc',
     features: [
-      'Maintenance scheduling',
-      'System performance tracking',
-      'Parts inventory management',
-      'Service history logs'
+      'feature1',
+      'feature2',
+      'feature3',
+      'feature4'
     ]
   }
 ];
 
-const ThemePreviewCard = ({ themeId, name, icon, description, features, isActive }) => {
+const ThemePreviewCard = ({ themeId, nameKey, icon, descriptionKey, features, isActive }) => {
+  const { t } = useTranslation();
   const { setTheme } = useTheme();
   
   return (
     <div 
-      className={`p-6 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-lg
-        ${isActive ? 'border-primary bg-background shadow-md' : 'border-border hover:border-primary'}`}
+      className={`p-6 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl ${
+        isActive 
+          ? 'border-blue-500 bg-blue-900/20 shadow-lg' 
+          : 'border-gray-700 bg-gray-800 hover:border-gray-600 hover:bg-gray-750'
+      }`}
       onClick={() => setTheme(themeId)}
-      style={{ backgroundImage: 'var(--form-bg-image)' }}
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
-          <span className="text-primary p-2 bg-background rounded-lg shadow-sm">
+          <span className={`p-3 rounded-lg ${
+            isActive ? 'bg-blue-500/20 text-blue-400' : 'bg-gray-700 text-gray-400'
+          }`}>
             {icon}
           </span>
-          <h3 className="text-xl font-semibold text-text">{name}</h3>
+          <h3 className="text-xl font-semibold text-white">{t(`theme.${nameKey}`, nameKey)}</h3>
         </div>
         {isActive && (
-          <span className="text-primary text-xl">✓</span>
+          <div className="bg-blue-500 rounded-full p-1">
+            <Check className="h-5 w-5 text-white" />
+          </div>
         )}
       </div>
-      <p className="text-secondary mb-4">{description}</p>
+      <p className="text-gray-400 mb-4">{t(`theme.${descriptionKey}`, descriptionKey)}</p>
       <ul className="space-y-2">
         {features.map((feature, index) => (
-          <li key={index} className="flex items-center text-sm text-text">
-            <span className="mr-2 text-primary">•</span>
-            {feature}
+          <li key={index} className="flex items-center text-sm text-gray-300">
+            <span className="mr-2 text-blue-400">•</span>
+            {t(`theme.${themeId}.${feature}`, feature)}
           </li>
         ))}
       </ul>
@@ -133,46 +141,80 @@ const ThemePreviewCard = ({ themeId, name, icon, description, features, isActive
   );
 };
 
-const ThemeView = ({ title }) => {
-  const { theme } = useTheme();
+const ThemeView = () => {
+  const { t } = useTranslation();
+  const { theme, setTheme } = useTheme();
 
   return (
-    <div className="space-y-6">
-      <HeaderSection 
-        title={title} 
-        onAdd={null}
-        onRead={null}
-        onBack={null}
-      />
-      
-      <div className="p-6 bg-background rounded-lg shadow-lg">
-        <h2 className="text-2xl font-semibold text-text mb-4">Theme Settings</h2>
-        <p className="text-secondary mb-6">
-          Choose a theme that best matches your business type. Each theme is specially designed
-          with colors, layouts and features optimized for your industry.
-        </p>
-        
-        <div className="flex items-center space-x-4 mb-8">
-          <span className="text-text">Current theme:</span>
-          <ThemeSelector />
+    <div className="bg-gray-900 min-h-screen p-4 sm:p-6">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="bg-gray-800 rounded-xl shadow-xl p-6 border border-gray-700">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="bg-blue-500/20 rounded-lg p-4">
+              <PaintBucket className="h-8 w-8 text-blue-400" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-white">
+                {t('theme.title', 'Postavke teme')}
+              </h1>
+              <p className="text-gray-400 mt-1">
+                {t('theme.subtitle', 'Izaberite temu koja najbolje odgovara vašem tipu poslovanja')}
+              </p>
+            </div>
+          </div>
+          
+          <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4 mt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400 mb-2">
+                  {t('theme.currentTheme', 'Trenutna tema:')}
+                </p>
+                <ThemeSelector />
+              </div>
+            </div>
+          </div>
         </div>
 
+        {/* Description */}
+        <div className="bg-gray-800 rounded-xl shadow-xl p-6 border border-gray-700">
+          <p className="text-gray-300 leading-relaxed">
+            {t('theme.description', 'Svaka tema je posebno dizajnirana sa bojama, rasporedima i funkcionalnostima optimizovanim za vašu industriju. Izaberite onu koja najbolje predstavlja vašu kompaniju.')}
+          </p>
+        </div>
+
+        {/* Theme Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {themes.map((t) => (
+          {themes.map((themeItem) => (
             <ThemePreviewCard
-              key={t.id}
-              themeId={t.id}
-              name={t.name}
-              icon={t.icon}
-              description={t.description}
-              features={t.features}
-              isActive={theme === t.id}
+              key={themeItem.id}
+              themeId={themeItem.id}
+              nameKey={themeItem.nameKey}
+              icon={themeItem.icon}
+              descriptionKey={themeItem.descriptionKey}
+              features={themeItem.features}
+              isActive={theme === themeItem.id}
             />
           ))}
         </div>
+
+        {/* Info */}
+        <div className="bg-yellow-900/20 border border-yellow-700 rounded-xl p-6">
+          <div className="flex items-start gap-4">
+            <Zap className="h-6 w-6 text-yellow-400 flex-shrink-0 mt-1" />
+            <div>
+              <h3 className="text-lg font-bold text-white mb-2">
+                {t('theme.infoTitle', 'Saveti')}
+              </h3>
+              <p className="text-gray-300 text-sm">
+                {t('theme.info', 'Tema će se primeniti odmah nakon izbora. Sve promene se čuvaju automatski i biće vidljive u celoj aplikaciji.')}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ThemeView
+export default ThemeView;

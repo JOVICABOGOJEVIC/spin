@@ -41,11 +41,20 @@ export const login = createAsyncThunk("/auth/login", async({formData, navigate, 
             sessionStorage.setItem('businessType', response.data.businessType);
         }
         
+        // Check if user is super admin and redirect accordingly
+        const isSuperAdmin = userData.result?.role === 'superadmin';
+        
         if (onSuccess && typeof onSuccess === 'function') {
             onSuccess(userData);
         }
         
-        navigate("/dashboard");
+        // Navigate to appropriate dashboard based on role
+        if (isSuperAdmin) {
+            navigate("/dashboard/superadmin");
+        } else {
+            navigate("/dashboard");
+        }
+        
         return userData;
     } catch (error) {
         const errorMessage = error.customMessage || error.response?.data?.message || "Greška prilikom prijave";
@@ -323,9 +332,18 @@ const authSlice = createSlice({
             })
             .addCase(login.rejected, (state, action) => {
                 state.loading = false;
-                state.error = action.payload ? action.payload.message : "Greška prilikom prijave";
-                // Show toast message here
-                toast.error(state.error);
+                const errorMessage = action.payload ? action.payload.message : "Greška prilikom prijave";
+                state.error = errorMessage;
+                
+                // Check if email verification is required
+                if (action.payload?.requiresVerification) {
+                    toast.error(errorMessage, {
+                        autoClose: 5000,
+                    });
+                    // Optionally navigate to a page with resend verification option
+                } else {
+                    toast.error(errorMessage);
+                }
             })
             .addCase(registerCompany.pending, (state) => {
                 state.loading = true;

@@ -19,7 +19,7 @@ export const getModels = createAsyncThunk(
   "model/getModels",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.getModels();
+      const response = await api.fetchModels();
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response.data);
@@ -31,7 +31,7 @@ export const getModel = createAsyncThunk(
   "model/getModel",
   async (id, { rejectWithValue }) => {
     try {
-      const response = await api.getModel(id);
+      const response = await api.fetchModel(id);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response.data);
@@ -43,7 +43,7 @@ export const updateModel = createAsyncThunk(
   "model/updateModel",
   async ({ id, updatedModelData }, { rejectWithValue }) => {
     try {
-      const response = await api.updateModel(id, updatedModelData);
+      const response = await api.updateModel({ id, modelData: updatedModelData });
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response.data);

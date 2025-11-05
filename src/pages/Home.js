@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../components/shared/LanguageSwitcher';
 import { 
   ArrowRight, 
   CheckCircle, 
@@ -23,6 +25,7 @@ import {
 
 const Home = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [hoveredPlan, setHoveredPlan] = useState(null);
 
   const handleGetStarted = () => {
@@ -36,23 +39,23 @@ const Home = () => {
   const features = [
     {
       icon: <Clock className="h-8 w-8 text-green-500" />,
-      title: "Real-time Job Tracking",
-      description: "Track your field service jobs in real-time with GPS location and status updates."
+      title: "Praćenje poslova u realnom vremenu",
+      description: "Pratite poslove terenskih usluga u realnom vremenu sa GPS lokacijom i ažuriranjima statusa."
     },
     {
       icon: <Users className="h-8 w-8 text-blue-500" />,
-      title: "Team Management",
-      description: "Manage your workforce with role-based permissions and real-time communication."
+      title: "Upravljanje timom",
+      description: "Upravljajte svojom radnom snagom sa dozvolama zasnovanim na ulogama i komunikacijom u realnom vremenu."
     },
     {
       icon: <BarChart3 className="h-8 w-8 text-purple-500" />,
-      title: "Analytics Dashboard",
-      description: "Get insights into your business performance with comprehensive analytics."
+      title: "Analitička tabla",
+      description: "Dobijte uvide u performanse vašeg poslovanja sa sveobuhvatnom analitikom."
     },
     {
       icon: <Shield className="h-8 w-8 text-red-500" />,
-      title: "Secure & Reliable",
-      description: "Enterprise-grade security with 99.9% uptime guarantee for your business."
+      title: "Sigurno i pouzdano",
+      description: "Preduzećaška sigurnost sa 99.9% garancijom vremena rada za vaše poslovanje."
     }
   ];
 
@@ -60,13 +63,13 @@ const Home = () => {
     {
       name: "Starter",
       price: "€29",
-      period: "/month",
-      description: "Perfect for small businesses",
+      period: "/mesečno",
+      description: "Savršeno za mala preduzeća",
       features: [
-        "Up to 5 workers",
-        "Basic job management",
-        "Mobile app access",
-        "Email support"
+        "Do 5 radnika",
+        "Osnovno upravljanje poslovima",
+        "Pristup mobilnoj aplikaciji",
+        "Email podrška"
       ],
       popular: false,
       color: "bg-gray-100"
@@ -74,14 +77,14 @@ const Home = () => {
     {
       name: "Professional",
       price: "€79",
-      period: "/month",
-      description: "Best for growing companies",
+      period: "/mesečno",
+      description: "Najbolje za rastuća preduzeća",
       features: [
-        "Up to 25 workers",
-        "Advanced analytics",
-        "Real-time tracking",
-        "Priority support",
-        "Custom integrations"
+        "Do 25 radnika",
+        "Napredna analitika",
+        "Praćenje u realnom vremenu",
+        "Prioritetna podrška",
+        "Prilagođena integracija"
       ],
       popular: true,
       color: "bg-green-50"
@@ -89,14 +92,14 @@ const Home = () => {
     {
       name: "Enterprise",
       price: "€199",
-      period: "/month",
-      description: "For large organizations",
+      period: "/mesečno",
+      description: "Za velike organizacije",
       features: [
-        "Unlimited workers",
-        "Custom features",
-        "Dedicated support",
-        "Advanced security",
-        "API access"
+        "Neograničen broj radnika",
+        "Prilagođene funkcije",
+        "Namenska podrška",
+        "Napredna sigurnost",
+        "API pristup"
       ],
       popular: false,
       color: "bg-blue-50"
@@ -104,10 +107,10 @@ const Home = () => {
   ];
 
   const stats = [
-    { number: "10,000+", label: "Active Users" },
-    { number: "99.9%", label: "Uptime" },
-    { number: "50+", label: "Countries" },
-    { number: "24/7", label: "Support" }
+    { number: "10,000+", label: "Aktivnih korisnika" },
+    { number: "99.9%", label: "Vreme rada" },
+    { number: "50+", label: "Zemalja" },
+    { number: "24/7", label: "Podrška" }
   ];
 
   return (
@@ -118,27 +121,30 @@ const Home = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <h1 className="text-2xl font-bold text-green-600">SpinTasker</h1>
+                <h1 className="text-2xl font-bold text-green-600 flex items-center">
+                  SpinT<span className="text-white mx-0.5 animate-spin-slow inline-block" style={{ fontSize: '0.67em' }}>@</span>sker
+                </h1>
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              <LanguageSwitcher />
               <button
                 onClick={handleLogin}
                 className="text-gray-300 hover:text-green-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
-                Sign In
+                {t('auth.login')}
               </button>
               <button
                 onClick={() => navigate("/auth?role=worker&type=login")}
                 className="text-gray-300 hover:text-blue-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
-                Login za servisere
+                {t('auth.loginForWorkers')}
               </button>
               <button
                 onClick={handleGetStarted}
                 className="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 transition-colors"
               >
-                Get Started
+                {t('auth.register')}
               </button>
             </div>
           </div>
@@ -150,24 +156,24 @@ const Home = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-              The field service platform for
-              <span className="text-green-600"> dynamic, demanding</span> businesses
+              Platforma za terenske usluge za
+              <span className="text-green-600"> dinamična, zahtevna</span> preduzeća
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              AI depends on fluid, instantly accessible data, not fragmented silos. 
-              Consolidate your field service operations into a single, flexible system.
+              Dostupniji za servisere: Sve što vam treba na jednom mestu. 
+              Jednostavan sistem za upravljanje poslovima, timom i klijentima - bez komplikacija.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={handleGetStarted}
                 className="bg-green-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center"
               >
-                Get Started
+                Započni
                 <ArrowRight className="ml-2 h-5 w-5" />
               </button>
               <button className="border border-gray-300 text-gray-700 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center">
                 <Play className="mr-2 h-5 w-5" />
-                Watch Demo
+                Pogledaj demo
               </button>
             </div>
           </div>
@@ -177,12 +183,12 @@ const Home = () => {
       {/* Trusted By Section */}
       <section className="py-12 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-gray-500 mb-8">TRUSTED BY</p>
+          <p className="text-center text-gray-500 mb-8">POVERENJE NAM JE DALO</p>
           <div className="flex justify-center items-center space-x-12 opacity-60">
-            <div className="text-2xl font-bold text-gray-400">Company A</div>
-            <div className="text-2xl font-bold text-gray-400">Company B</div>
-            <div className="text-2xl font-bold text-gray-400">Company C</div>
-            <div className="text-2xl font-bold text-gray-400">Company D</div>
+            <div className="text-2xl font-bold text-gray-400">Kompanija A</div>
+            <div className="text-2xl font-bold text-gray-400">Kompanija B</div>
+            <div className="text-2xl font-bold text-gray-400">Kompanija C</div>
+            <div className="text-2xl font-bold text-gray-400">Kompanija D</div>
           </div>
         </div>
       </section>
@@ -192,10 +198,10 @@ const Home = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              SpinTasker Platform
+              SpinTasker Platforma
             </h2>
             <p className="text-xl text-gray-600">
-              The modern field service platform for any use case
+              Moderna platforma za terenske usluge za bilo koji slučaj upotrebe
             </p>
           </div>
           
@@ -232,10 +238,10 @@ const Home = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Choose your plan
+              Izaberite svoj plan
             </h2>
             <p className="text-xl text-gray-600">
-              Start free, then scale as you grow
+              Počnite besplatno, a zatim rastite kako vaše poslovanje raste
             </p>
           </div>
           
@@ -252,7 +258,7 @@ const Home = () => {
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                     <span className="bg-green-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                      Most Popular
+                      Najpopularnije
                     </span>
                   </div>
                 )}
@@ -282,7 +288,7 @@ const Home = () => {
                         : 'bg-white text-gray-900 border border-gray-300 hover:bg-gray-50'
                     }`}
                   >
-                    Get Started
+                    Započni
                   </button>
                 </div>
               </div>
@@ -295,20 +301,20 @@ const Home = () => {
       <section className="py-20 bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Ready to transform your field service?
+            Spremni da transformišete svoje terenske usluge?
           </h2>
           <p className="text-xl text-gray-300 mb-8">
-            Join thousands of companies already using SpinTasker
+            Pridružite se hiljadama kompanija koje već koriste SpinTasker
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={handleGetStarted}
               className="bg-green-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-green-700 transition-colors"
             >
-              Start Free Trial
+              Započni besplatnu probu
             </button>
             <button className="border border-gray-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-800 transition-colors">
-              Contact Sales
+              Kontaktiraj prodaju
             </button>
           </div>
         </div>
@@ -319,40 +325,40 @@ const Home = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Product</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Proizvod</h3>
               <ul className="space-y-2">
-                <li><a href="#" className="text-gray-600 hover:text-gray-900">Features</a></li>
-                <li><a href="#" className="text-gray-600 hover:text-gray-900">Pricing</a></li>
+                <li><a href="#" className="text-gray-600 hover:text-gray-900">Funkcije</a></li>
+                <li><a href="#" className="text-gray-600 hover:text-gray-900">Cene</a></li>
                 <li><a href="#" className="text-gray-600 hover:text-gray-900">API</a></li>
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Company</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Kompanija</h3>
               <ul className="space-y-2">
-                <li><a href="#" className="text-gray-600 hover:text-gray-900">About</a></li>
+                <li><a href="#" className="text-gray-600 hover:text-gray-900">O nama</a></li>
                 <li><a href="#" className="text-gray-600 hover:text-gray-900">Blog</a></li>
-                <li><a href="#" className="text-gray-600 hover:text-gray-900">Careers</a></li>
+                <li><a href="#" className="text-gray-600 hover:text-gray-900">Karijere</a></li>
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Support</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Podrška</h3>
               <ul className="space-y-2">
-                <li><a href="#" className="text-gray-600 hover:text-gray-900">Help Center</a></li>
-                <li><a href="#" className="text-gray-600 hover:text-gray-900">Contact</a></li>
+                <li><a href="#" className="text-gray-600 hover:text-gray-900">Centar za pomoć</a></li>
+                <li><a href="#" className="text-gray-600 hover:text-gray-900">Kontakt</a></li>
                 <li><a href="#" className="text-gray-600 hover:text-gray-900">Status</a></li>
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Legal</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Pravno</h3>
               <ul className="space-y-2">
-                <li><a href="#" className="text-gray-600 hover:text-gray-900">Privacy</a></li>
-                <li><a href="#" className="text-gray-600 hover:text-gray-900">Terms</a></li>
-                <li><a href="#" className="text-gray-600 hover:text-gray-900">Security</a></li>
+                <li><a href="#" className="text-gray-600 hover:text-gray-900">Privatnost</a></li>
+                <li><a href="#" className="text-gray-600 hover:text-gray-900">Uslovi</a></li>
+                <li><a href="#" className="text-gray-600 hover:text-gray-900">Sigurnost</a></li>
               </ul>
             </div>
           </div>
           <div className="border-t border-gray-200 mt-8 pt-8 text-center">
-            <p className="text-gray-600">© 2025 SpinTasker. All rights reserved.</p>
+            <p className="text-gray-600">© 2025 SpinTasker. Sva prava zadržana.</p>
           </div>
         </div>
       </footer>

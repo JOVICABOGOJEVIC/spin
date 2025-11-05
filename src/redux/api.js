@@ -1,23 +1,19 @@
 import axios from 'axios';
-import { getBusinessType } from '../utils/businessTypeUtils';
 
-// Konfiguracija API-ja
-const API = axios.create({ baseURL: 'http://localhost:5000/api' });
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API = axios.create({ baseURL: `${API_BASE_URL}/api` });
 
-// Export the API instance
-export { API };
-
-// Automatsko dodavanje tokena na svaki API poziv
+// Interceptor za zahteve koji dodaje token u header
 API.interceptors.request.use((req) => {
   const profile = localStorage.getItem('profile');
   if (profile) {
     try {
-      const { token } = JSON.parse(profile);
-      if (token) {
-        req.headers.Authorization = `Bearer ${token}`;
+      const parsedProfile = JSON.parse(profile);
+      if (parsedProfile.token) {
+        req.headers.Authorization = `Bearer ${parsedProfile.token}`;
       }
-    } catch (error) {
-      console.error('Error parsing profile:', error);
+    } catch (e) {
+      console.error('Error parsing profile in interceptor:', e);
     }
   }
   return req;
@@ -83,16 +79,17 @@ API.interceptors.response.use(
 
       messageDiv.appendChild(spinner);
       const textDiv = document.createElement('div');
-      textDiv.textContent = `Session expired. Redirecting to login page in ${countdown} seconds...`;
+      textDiv.textContent = `Sesija je istekla. Preusmeravanje na login stranicu za ${countdown} sekundi...`;
       messageDiv.appendChild(textDiv);
       document.body.appendChild(messageDiv);
 
       const countdownInterval = setInterval(() => {
         countdown--;
         if (countdown > 0) {
-          textDiv.textContent = `Session expired. Redirecting to login page in ${countdown} seconds...`;
+          textDiv.textContent = `Sesija je istekla. Preusmeravanje na login stranicu za ${countdown} sekundi...`;
         } else {
           clearInterval(countdownInterval);
+          messageDiv.remove();
           window.location.href = '/auth?role=company&type=login';
         }
       }, 1000);
@@ -101,159 +98,144 @@ API.interceptors.response.use(
   }
 );
 
-// Koristi stvarni API
-
-// Auth API
-export const signIn = (formData) => {
-  console.log('Sending sign in request with data:', formData);
-  return API.post('/auth/company/signin', formData)
-    .then(response => {
-      console.log('Sign in response:', response);
-      
-      // Ensure we have the country code in the correct format
-      let countryCode = response.data.result?.countryCode || response.data.countryCode;
-      if (countryCode) {
-        countryCode = countryCode.toLowerCase();
-        // Update the response data to ensure consistent format
-        if (response.data.result) {
-          response.data.result.countryCode = countryCode;
-        } else {
-          response.data.countryCode = countryCode;
-        }
-      }
-      
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        // Also store the profile data with correct country code
-        localStorage.setItem('profile', JSON.stringify(response.data));
-      }
-      
-      return response;
-    })
-    .catch(error => {
-      console.error('Sign in error:', error);
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response,
-        request: error.request
-      });
-
-      // Enhance error messages
-      let errorMessage = 'An error occurred during login.';
-      
-      if (error.response) {
-        switch (error.response.status) {
-          case 400:
-            if (error.response.data.message === "User does not exist") {
-              errorMessage = "Company with this email does not exist.";
-            } else if (error.response.data.message === "Invalid credentials") {
-              errorMessage = "Incorrect password.";
-            } else if (error.response.data.message === "Email and password are required") {
-              errorMessage = "Email and password are required.";
-            }
-            break;
-          case 401:
-            errorMessage = "Not authorized. Please log in again.";
-            break;
-          case 404:
-            errorMessage = "Company with this email does not exist.";
-            break;
-          case 500:
-            errorMessage = "Server error. Please try again later.";
-            break;
-          default:
-            errorMessage = "An unexpected error occurred. Please try again.";
-        }
-      }
-
-      error.customMessage = errorMessage;
-      throw error;
-    });
-};
-
+// Auth
+export const signIn = (formData) => API.post('/auth/company/signin', formData);
 export const signUp = (formData) => API.post('/auth/signup', formData);
 export const signUpCompany = (formData) => API.post('/auth/registercompany', formData);
 
-// Job API
+// Jobs
 export const createJob = (jobData) => {
-  console.log('API createJob called with jobData:', jobData);
-  console.log('API URL:', '/jobs');
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
   return API.post('/jobs', jobData);
 };
 
 export const getJobs = (businessType) => {
-  if (!businessType) {
-    businessType = getBusinessType();
-  }
-  
-  console.log('API getJobs called with businessType:', businessType);
-  console.log('API URL:', `/jobs?businessType=${businessType}`);
-  
   return API.get(`/jobs?businessType=${businessType}`);
 };
 
 export const getJob = (id) => API.get(`/jobs/${id}`);
-
-export const updateJob = (id, updatedJobData) => API.patch(`/jobs/${id}`, updatedJobData);
-
+export const updateJob = ({ id, jobData }) => API.put(`/jobs/${id}`, jobData);
 export const deleteJob = (id) => API.delete(`/jobs/${id}`);
 
-// Worker API calls
+// Workers
 export const fetchWorkers = () => API.get('/worker');
 export const fetchWorker = (id) => API.get(`/worker/${id}`);
 export const createWorker = (workerData) => API.post('/worker', workerData);
-export const updateWorker = (id, updatedWorkerData) => API.patch(`/worker/${id}`, updatedWorkerData);
+export const updateWorker = ({ id, workerData }) => API.put(`/worker/${id}`, workerData);
 export const deleteWorker = (id) => API.delete(`/worker/${id}`);
 
-// Team API calls
+// Teams
 export const fetchTeams = () => API.get('/team');
 export const fetchTeam = (id) => API.get(`/team/${id}`);
 export const createTeam = (teamData) => API.post('/team', teamData);
-export const updateTeam = (id, updatedTeamData) => API.patch(`/team/${id}`, updatedTeamData);
+export const updateTeam = ({ id, teamData }) => API.put(`/team/${id}`, teamData);
 export const deleteTeam = (id) => API.delete(`/team/${id}`);
 
-// Model API calls
-export const getModels = () => {
+// Company
+export const fetchCompanyById = (id) => API.get(`/company/${id}`);
+export const updateCompanyById = ({ id, companyData }) => API.put(`/company/${id}`, companyData);
+
+// Models
+export const fetchModels = () => {
   return API.get('/models');
 };
-
-export const getModel = (id) => {
+export const fetchModel = (id) => {
   return API.get(`/models/${id}`);
 };
-
 export const createModel = (modelData) => {
   return API.post('/models', modelData);
 };
-
-export const updateModel = (id, updatedModelData) => {
-  return API.patch(`/models/${id}`, updatedModelData);
+export const updateModel = ({ id, modelData }) => {
+  return API.put(`/models/${id}`, modelData);
 };
-
 export const deleteModel = (id) => {
   return API.delete(`/models/${id}`);
 };
 
-// Client API
-export const getClients = () => {
+// Clients
+export const fetchClients = () => {
   return API.get('/client');
 };
-
-export const getClient = (id) => {
+export const fetchClient = (id) => {
   return API.get(`/client/${id}`);
 };
-
 export const createClient = (clientData) => {
   return API.post('/client', clientData);
 };
-
-export const updateClient = (id, updatedClientData) => {
-  return API.patch(`/client/${id}`, updatedClientData);
+export const updateClient = ({ id, clientData }) => {
+  return API.put(`/client/${id}`, clientData);
 };
-
 export const deleteClient = (id) => {
   return API.delete(`/client/${id}`);
 };
 
-// User profiles
+// Spare Parts
+export const fetchSpareParts = () => API.get('/sparePart');
+export const fetchSparePart = (id) => API.get(`/sparePart/${id}`);
+export const createSparePart = (sparePartData) => API.post('/sparePart', sparePartData);
+export const updateSparePart = ({ id, sparePartData }) => API.put(`/sparePart/${id}`, sparePartData);
+export const deleteSparePart = (id) => API.delete(`/sparePart/${id}`);
+
+// User/Company Profile
 export const getUser = () => API.get("/api/user/profile");
 export const getCompany = () => API.get("/api/company/profile");
+
+// Super Admin
+export const getSuperAdminStats = () => API.get('/superadmin/stats');
+export const getAllCompanies = () => API.get('/superadmin/companies');
+export const sendGlobalNotification = (notificationData) => API.post('/superadmin/notifications', notificationData);
+export const getSentNotifications = () => API.get('/superadmin/notifications');
+export const getGlobalNotifications = () => API.get('/notifications/all');
+export const createSuperAdmin = (adminData) => API.post('/superadmin/create-admin', adminData);
+export const createSuperAdminPublic = (adminData) => API.post('/superadmin/create-admin-public', adminData);
+
+// Inventory - Items
+export const getInventoryItems = () => API.get('/inventory/items');
+export const getInventoryItem = (id) => API.get(`/inventory/items/${id}`);
+export const getInventoryStats = () => API.get('/inventory/items/stats');
+export const createInventoryItem = (itemData) => API.post('/inventory/items', itemData);
+export const updateInventoryItem = ({ id, itemData }) => API.put(`/inventory/items/${id}`, itemData);
+export const deleteInventoryItem = (id) => API.delete(`/inventory/items/${id}`);
+
+// Inventory - Warehouse Transactions
+export const getWarehouseTransactions = (params) => API.get('/inventory/transactions', { params });
+export const getTransactionsByJob = (jobId) => API.get(`/inventory/transactions/job/${jobId}`);
+export const createInputTransaction = (transactionData) => API.post('/inventory/transactions/input', transactionData);
+export const createOutputTransaction = (transactionData) => API.post('/inventory/transactions/output', transactionData);
+export const createReturnTransaction = (transactionData) => API.post('/inventory/transactions/return', transactionData);
+
+// Inventory - Customs
+export const getCustomsDeclarations = () => API.get('/inventory/customs');
+export const getCustomsDeclaration = (id) => API.get(`/inventory/customs/${id}`);
+export const createCustomsDeclaration = (declarationData) => API.post('/inventory/customs', declarationData);
+export const updateCustomsDeclaration = ({ id, declarationData }) => API.put(`/inventory/customs/${id}`, declarationData);
+export const deleteCustomsDeclaration = (id) => API.delete(`/inventory/customs/${id}`);
+
+// Inventory - Movements (Withdrawn Items)
+export const getWithdrawnItems = (params) => API.get('/inventory/movements', { params });
+export const getMovementsByJob = (jobId) => API.get(`/inventory/movements/job/${jobId}`);
+export const getWithdrawnItemsStats = (params) => API.get('/inventory/movements/stats', { params });
+export const reserveItemForJob = (reservationData) => API.post('/inventory/movements/reserve', reservationData);
+export const issueReservedItem = (movementId, data) => API.put(`/inventory/movements/${movementId}/issue`, data);
+export const returnItem = (movementId, data) => API.put(`/inventory/movements/${movementId}/return`, data);
+
+// Inventory - Calculations
+export const getCalculations = (params) => API.get('/inventory/calculations', { params });
+
+// Payments (for company invoices to clients)
+export const getPayments = (params) => API.get('/payments', { params });
+export const getPayment = (id) => API.get(`/payments/${id}`);
+export const createPayment = (paymentData) => API.post('/payments', paymentData);
+export const updatePayment = ({ id, paymentData }) => API.put(`/payments/${id}`, paymentData);
+export const markPaymentAsPaid = (id, paymentData) => API.patch(`/payments/${id}/paid`, paymentData);
+export const deletePayment = (id) => API.delete(`/payments/${id}`);
+export const getPaymentStats = (params) => API.get('/payments/stats', { params });
+
+// Subscription Payments (for app subscription - users pay you)
+export const getSubscriptionPayments = (params) => API.get('/subscription-payments', { params });
+export const getSubscriptionPayment = (id) => API.get(`/subscription-payments/${id}`);
+export const createSubscriptionPayment = (paymentData) => API.post('/subscription-payments', paymentData);
+export const markSubscriptionPaymentAsPaid = (id, paymentData) => API.patch(`/subscription-payments/${id}/paid`, paymentData);
+export const verifySubscriptionPayment = (id, verified) => API.patch(`/subscription-payments/${id}/verify`, { verified });
+export const getSubscriptionPaymentInfo = () => API.get('/subscription-payments/info');
+export const getSubscriptionStats = (params) => API.get('/subscription-payments/stats', { params });

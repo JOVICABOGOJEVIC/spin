@@ -1,0 +1,12 @@
+.spin-icon-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.spin-icon-svg {
+  color: currentColor;
+}
+
