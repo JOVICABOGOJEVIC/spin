@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import { API_BASE_URL } from '../config/api.js';
 const API = axios.create({ baseURL: `${API_BASE_URL}/api` });
 
 // Interceptor za zahteve koji dodaje token u header
@@ -105,7 +104,6 @@ export const signUpCompany = (formData) => API.post('/auth/registercompany', for
 
 // Jobs
 export const createJob = (jobData) => {
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
   return API.post('/jobs', jobData);
 };
 
@@ -116,6 +114,7 @@ export const getJobs = (businessType) => {
 export const getJob = (id) => API.get(`/jobs/${id}`);
 export const updateJob = ({ id, jobData }) => API.put(`/jobs/${id}`, jobData);
 export const deleteJob = (id) => API.delete(`/jobs/${id}`);
+export const extractJobDataFromMessage = (message) => API.post('/jobs/extract-from-message', { message });
 
 // Workers
 export const fetchWorkers = () => API.get('/worker');
@@ -130,6 +129,30 @@ export const fetchTeam = (id) => API.get(`/team/${id}`);
 export const createTeam = (teamData) => API.post('/team', teamData);
 export const updateTeam = ({ id, teamData }) => API.put(`/team/${id}`, teamData);
 export const deleteTeam = (id) => API.delete(`/team/${id}`);
+
+// Services hierarchy
+export const fetchDeviceCategories = () => API.get('/services/device-categories');
+export const createDeviceCategory = (categoryData) => API.post('/services/device-categories', categoryData);
+export const updateDeviceCategory = ({ id, categoryData }) => API.put(`/services/device-categories/${id}`, categoryData);
+export const deleteDeviceCategory = (id) => API.delete(`/services/device-categories/${id}`);
+
+export const fetchDeviceTypes = () => API.get('/services/device-types');
+export const createDeviceType = (typeData) => API.post('/services/device-types', typeData);
+export const updateDeviceType = ({ id, typeData }) => API.put(`/services/device-types/${id}`, typeData);
+export const deleteDeviceType = (id) => API.delete(`/services/device-types/${id}`);
+
+export const fetchServicesList = () => API.get('/services');
+export const createServiceItem = (serviceData) => API.post('/services', serviceData);
+export const updateServiceItem = ({ id, serviceData }) => API.put(`/services/${id}`, serviceData);
+export const deleteServiceItem = (id) => API.delete(`/services/${id}`);
+
+// AI Business
+export const fetchAIBusinessIdeas = () => API.get('/ai-business');
+export const createAIBusinessIdea = (ideaData) => API.post('/ai-business', ideaData);
+export const updateAIBusinessIdea = ({ id, ideaData }) => API.put(`/ai-business/${id}`, ideaData);
+export const deleteAIBusinessIdea = (id) => API.delete(`/ai-business/${id}`);
+export const respondToAIBusinessIdea = ({ id, status, note }) =>
+  API.post(`/ai-business/${id}/respond`, { status, note });
 
 // Company
 export const fetchCompanyById = (id) => API.get(`/company/${id}`);

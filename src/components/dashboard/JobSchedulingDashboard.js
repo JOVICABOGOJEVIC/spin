@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
+import { DragDropContext } from 'react-beautiful-dnd';
 import { updateJob } from '../../redux/features/jobSlice';
 import JobQueue from './JobQueue';
 import CalendarWithDragDrop from './CalendarWithDragDrop';
 import JobForm from '../forms/JobForm';
 import { Plus, Calendar, List } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 const JobSchedulingDashboard = () => {
   const dispatch = useDispatch();
@@ -39,11 +41,29 @@ const JobSchedulingDashboard = () => {
       await dispatch(updateJob({ id: jobId, jobData: updatedJob }));
       
       // Show success message
+      toast.success(t('jobs.statusUpdated'));
       console.log(`Job ${job.clientName} scheduled for ${scheduledDate.toLocaleDateString()} at ${scheduledTime}`);
       
       // Jobs will be refreshed by parent component
     } catch (error) {
       console.error('Error scheduling job:', error);
+      toast.error(t('jobs.errorUpdatingStatus'));
+    }
+  };
+
+  // Handle drag end for both JobQueue and Calendar
+  const handleDragEnd = (result) => {
+    const { destination, source, draggableId } = result;
+
+    if (!destination) return;
+
+    // If dropped on a time slot in calendar
+    if (destination.droppableId.startsWith('time-slot-')) {
+      const [, , dateStr, hour, minute] = destination.droppableId.split('-');
+      const scheduledDate = new Date(dateStr);
+      const scheduledTime = `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+      
+      handleJobSchedule(draggableId, scheduledDate, scheduledTime);
     }
   };
 
@@ -168,40 +188,50 @@ const JobSchedulingDashboard = () => {
       </div>
 
       {/* Main Content - Mobile Responsive */}
-      <div className="grid gap-3 sm:gap-6 mb-20 sm:mb-4">
-        {viewMode === 'split' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
-            <JobQueue 
-              onJobSelect={handleJobSelect}
-              selectedJobId={selectedJob?._id}
-            />
-            <CalendarWithDragDrop
-              jobs={jobs}
-              onJobSchedule={handleJobSchedule}
-              onJobMove={handleJobMove}
-            />
-          </div>
-        )}
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="grid gap-3 sm:gap-6 mb-20 sm:mb-4">
+          {viewMode === 'split' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
+              <JobQueue 
+                jobs={jobs}
+                loading={loading}
+                onJobSelect={handleJobSelect}
+                selectedJobId={selectedJob?._id}
+                onJobSchedule={handleJobSchedule}
+              />
+              <CalendarWithDragDrop
+                jobs={jobs}
+                onJobSchedule={handleJobSchedule}
+                onJobMove={handleJobMove}
+                isNested={true}
+              />
+            </div>
+          )}
 
-        {viewMode === 'queue' && (
-          <div className="max-w-4xl mx-auto">
-            <JobQueue 
-              onJobSelect={handleJobSelect}
-              selectedJobId={selectedJob?._id}
-            />
-          </div>
-        )}
+          {viewMode === 'queue' && (
+            <div className="max-w-4xl mx-auto">
+              <JobQueue 
+                jobs={jobs}
+                loading={loading}
+                onJobSelect={handleJobSelect}
+                selectedJobId={selectedJob?._id}
+                onJobSchedule={handleJobSchedule}
+              />
+            </div>
+          )}
 
-        {viewMode === 'calendar' && (
-          <div className="w-full">
-            <CalendarWithDragDrop
-              jobs={jobs}
-              onJobSchedule={handleJobSchedule}
-              onJobMove={handleJobMove}
-            />
-          </div>
-        )}
-      </div>
+          {viewMode === 'calendar' && (
+            <div className="w-full">
+              <CalendarWithDragDrop
+                jobs={jobs}
+                onJobSchedule={handleJobSchedule}
+                onJobMove={handleJobMove}
+                isNested={true}
+              />
+            </div>
+          )}
+        </div>
+      </DragDropContext>
 
       {/* Job Form Modal */}
       {showJobForm && (

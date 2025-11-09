@@ -134,7 +134,7 @@ const WireTransferView = () => {
           <div className="bg-gradient-to-r from-blue-900 to-blue-800 rounded-xl shadow-xl p-6 border border-blue-700 mb-6">
             <div className="flex items-center gap-4 mb-4">
               <CreditCard className="h-6 w-6 text-blue-300" />
-              <h2 className="text-xl font-bold text-white">Informacije za Plaćanje</h2>
+              <h2 className="text-xl font-bold text-white">Podaci za Plaćanje</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -613,7 +613,7 @@ const CreatePaymentModal = ({ paymentInfo, user, onClose, onSave }) => {
           {/* Payment Info Display */}
           {paymentInfo && (
             <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
-              <h3 className="text-sm font-medium text-white mb-3">Informacije za Plaćanje:</h3>
+              <h3 className="text-sm font-medium text-white mb-3">Podaci za Plaćanje:</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Banka:</span>

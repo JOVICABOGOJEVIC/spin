@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useSelector } from 'react-redux';
+import { SOCKET_BASE_URL } from '../config/api.js';
 
 const WebSocketContext = createContext();
 
@@ -20,8 +21,7 @@ export const WebSocketProvider = ({ children }) => {
   useEffect(() => {
     if (user?.result) {
       // Initialize socket connection
-      const socketURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-      const newSocket = io(socketURL, {
+      const newSocket = io(SOCKET_BASE_URL, {
         transports: ['websocket'],
         autoConnect: true,
       });

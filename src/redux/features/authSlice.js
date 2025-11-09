@@ -62,7 +62,8 @@ export const login = createAsyncThunk("/auth/login", async({formData, navigate, 
     }
 });
 
-export const registerCompany = createAsyncThunk("/auth/registerCompany", async({formData, toast, navigate}, { rejectWithValue })=>{
+export const registerCompany = createAsyncThunk("/auth/registerCompany", async({formData, navigate, toast: toastOverride, onSuccess}, { rejectWithValue })=>{
+    const notifier = toastOverride || toast;
     try {
         console.log("Sending registration request with data:", formData);
         const response = await api.signUpCompany(formData);
@@ -71,8 +72,11 @@ export const registerCompany = createAsyncThunk("/auth/registerCompany", async({
         if (formData.businessType) {
             sessionStorage.setItem('businessType', formData.businessType);
         }
-        
-        toast.success("Successfully registered");
+
+        notifier?.success?.("Successfully registered");
+        if (typeof onSuccess === 'function') {
+            onSuccess(response.data);
+        }
         navigate("/auth?role=company&type=login");
         return response.data;
     } catch (error) {
@@ -84,7 +88,7 @@ export const registerCompany = createAsyncThunk("/auth/registerCompany", async({
         });
         
         const errorMessage = error.response?.data?.message || error.message || "Error during registration";
-        toast.error(errorMessage);
+        notifier?.error?.(errorMessage);
         return rejectWithValue(error.response?.data || { message: errorMessage });
     }
 });

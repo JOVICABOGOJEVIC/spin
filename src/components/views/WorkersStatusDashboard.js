@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Clock, Pause, CheckCircle, AlertCircle, User, Phone } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import { API_BASE_URL } from '../../config/api.js';
 
 const WorkersStatusDashboard = () => {
   const [workersStatus, setWorkersStatus] = useState([]);

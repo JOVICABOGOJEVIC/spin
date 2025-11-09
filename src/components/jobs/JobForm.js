@@ -46,7 +46,11 @@ const handleSubmit = (e) => {
 
   try {
     if (isEdit) {
-      dispatch(updateJob({ id: jobData._id, updatedJobData: transformedData }));
+      if (!jobData?._id) {
+        console.error('❌ Cannot update job: jobData._id is undefined');
+        return;
+      }
+      dispatch(updateJob({ id: jobData._id, jobData: transformedData }));
     } else {
       dispatch(createJob({ jobData: transformedData }));
     }

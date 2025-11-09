@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { Droppable, Draggable } from 'react-beautiful-dnd';
 import { Clock, AlertCircle, User, Phone, MapPin, Calendar, Edit, List, Trash2, CheckCircle, X } from 'lucide-react';
 import axios from 'axios';
 import { updateJob, deleteJob, getJobs } from '../../redux/features/jobSlice';
 import { toast } from 'react-toastify';
 import JobForm from '../forms/JobForm';
+import { API_BASE_URL } from '../../config/api.js';
 
-const JobQueue = ({ jobs = [], loading = false, onJobSelect, selectedJobId, showStats = true }) => {
+const JobQueue = ({ jobs = [], loading = false, onJobSelect, selectedJobId, showStats = true, onJobSchedule }) => {
   const dispatch = useDispatch();
   const { t } = useTranslation();
   const [filter, setFilter] = useState('all');
@@ -47,7 +48,6 @@ const JobQueue = ({ jobs = [], loading = false, onJobSelect, selectedJobId, show
   // Handle status action for workers
   const handleStatusAction = async (status, jobId, clientAddress) => {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
       const token = user?.token;
       
       // Update worker status
@@ -229,11 +229,8 @@ const JobQueue = ({ jobs = [], loading = false, onJobSelect, selectedJobId, show
           <p className="mt-2 text-gray-400">Loading jobs...</p>
         </div>
       ) : (
-        <DragDropContext onDragEnd={(result) => {
-          // Handle drag end - will be implemented with calendar integration
-          console.log('Drag ended:', result);
-        }}>
-          <Droppable droppableId="job-queue">
+        // DragDropContext is now handled by parent JobSchedulingDashboard
+        <Droppable droppableId="job-queue">
             {(provided, snapshot) => (
               <div
                 ref={provided.innerRef}
@@ -515,7 +512,6 @@ const JobQueue = ({ jobs = [], loading = false, onJobSelect, selectedJobId, show
             </div>
           )}
         </Droppable>
-      </DragDropContext>
       )}
 
       {!loading && filteredJobs.length === 0 && (

@@ -32,6 +32,10 @@ const JobFormSection = ({
             fieldValue = jobData.clientAddress;
           } else if (fieldName === 'serviceDateTime') {
             fieldValue = jobData.serviceDateTime;
+          } else if (fieldName === 'deviceType') {
+            fieldValue = jobData.deviceCategoryId || jobData.deviceTypeId || jobData.deviceType || '';
+          } else if (fieldName === 'serviceId') {
+            fieldValue = jobData.serviceId || '';
           } else {
             fieldValue = jobData[fieldName];
           }

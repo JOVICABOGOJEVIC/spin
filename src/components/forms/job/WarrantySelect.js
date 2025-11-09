@@ -1,10 +1,13 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 const WarrantySelect = ({ value, onChange, inputClass }) => {
+  const { t } = useTranslation();
+  
   return (
     <div className="mb-3">
       <label className="block text-sm font-medium text-gray-200 mb-1">
-        Warranty
+        {t('jobs.warranty')}
       </label>
       <select
         name="warranty"
@@ -12,8 +15,8 @@ const WarrantySelect = ({ value, onChange, inputClass }) => {
         onChange={(e) => onChange(e.target.value)}
         className={inputClass}
       >
-        <option value="no">No Warranty</option>
-        <option value="yes">Under Warranty</option>
+        <option value="no">{t('jobs.noWarranty')}</option>
+        <option value="yes">{t('jobs.underWarranty')}</option>
       </select>
     </div>
   );

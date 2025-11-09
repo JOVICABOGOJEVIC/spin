@@ -136,7 +136,7 @@ const TutorialsView = () => {
             <p className="text-gray-300 text-sm mb-3">{t('tutorials.jobs.createDesc', 'Novi posao se kreira popunjavanjem forme sa sledećim podacima:')}</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
               <div className="bg-gray-800 rounded p-3">
-                <div className="text-gray-400 text-xs mb-1">{t('tutorials.jobs.clientInfo', 'Informacije o klijentu')}</div>
+                <div className="text-gray-400 text-xs mb-1">{t('tutorials.jobs.clientInfo', 'Podaci o klijentu')}</div>
                 <ul className="text-white text-xs space-y-1">
                   <li>• {t('tutorials.jobs.clientName', 'Ime klijenta')}</li>
                   <li>• {t('tutorials.jobs.clientPhone', 'Telefon')}</li>
@@ -144,7 +144,7 @@ const TutorialsView = () => {
                 </ul>
               </div>
               <div className="bg-gray-800 rounded p-3">
-                <div className="text-gray-400 text-xs mb-1">{t('tutorials.jobs.jobInfo', 'Informacije o poslu')}</div>
+                <div className="text-gray-400 text-xs mb-1">{t('tutorials.jobs.jobInfo', 'Podaci o poslu')}</div>
                 <ul className="text-white text-xs space-y-1">
                   <li>• {t('tutorials.jobs.issueDesc', 'Opis problema')}</li>
                   <li>• {t('tutorials.jobs.priority', 'Prioritet')}</li>
@@ -469,18 +469,18 @@ const TutorialsView = () => {
     {
       id: 'company',
       icon: <Settings className="h-6 w-6" />,
-      title: t('tutorials.company.title', 'Kompanija - Postavke i informacije'),
-      description: t('tutorials.company.description', 'Informacije o kompaniji i postavke'),
+      title: t('tutorials.company.title', 'Kompanija - Postavke i podaci'),
+      description: t('tutorials.company.description', 'Podaci o kompaniji i postavke'),
       content: (
         <div className="space-y-4">
-          <p className="text-gray-300">{t('tutorials.company.intro', 'Sekcija Kompanija sadrži informacije o vašoj kompaniji i postavke sistema.')}</p>
+          <p className="text-gray-300">{t('tutorials.company.intro', 'Sekcija Kompanija sadrži podatke o vašoj kompaniji i postavke sistema.')}</p>
           
           <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4">
             <h4 className="font-semibold text-blue-400 mb-3 flex items-center gap-2">
               <Database className="h-5 w-5" />
-              {t('tutorials.company.info', 'Informacije o kompaniji')}
+              {t('tutorials.company.info', 'Podaci o kompaniji')}
             </h4>
-            <p className="text-gray-300 text-sm mb-3">{t('tutorials.company.infoDesc', 'Možete uneti i ažurirati sledeće informacije:')}</p>
+            <p className="text-gray-300 text-sm mb-3">{t('tutorials.company.infoDesc', 'Možete uneti i ažurirati sledeće podatke:')}</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-gray-800 rounded p-2">
                 <div className="text-gray-400 text-xs">{t('tutorials.company.field1', 'Naziv kompanije')}</div>
@@ -502,7 +502,7 @@ const TutorialsView = () => {
               <Package className="h-5 w-5" />
               {t('tutorials.company.magacin', 'Magacin i zaliha')}
             </h4>
-            <p className="text-gray-300 text-sm">{t('tutorials.company.magacinDesc', 'Kompletno upravljanje zalihama preko podsekcije Magacin. Vidite detaljne informacije u sekciji Magacin iznad.')}</p>
+            <p className="text-gray-300 text-sm">{t('tutorials.company.magacinDesc', 'Kompletno upravljanje zalihama preko podsekcije Magacin. Vidite detaljne podatke u sekciji Magacin iznad.')}</p>
           </div>
         </div>
       )

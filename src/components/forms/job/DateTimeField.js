@@ -1,11 +1,14 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 const DateTimeField = ({ value, onChange, inputClass }) => {
+  const { t } = useTranslation();
+  
   return (
     <div className="space-y-2">
       <div>
         <label className="block text-sm font-medium text-gray-200 mb-1">
-          Service Date
+          {t('jobs.serviceDate')}
         </label>
         <input
           type="date"
@@ -16,7 +19,7 @@ const DateTimeField = ({ value, onChange, inputClass }) => {
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-200 mb-1">
-          Service Time
+          {t('jobs.serviceTime')}
         </label>
         <input
           type="time"

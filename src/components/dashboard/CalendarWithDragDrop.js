@@ -6,9 +6,11 @@ import { useTranslation } from 'react-i18next';
 import { updateJob, deleteJob, getJobs } from '../../redux/features/jobSlice';
 import { toast } from 'react-toastify';
 import JobForm from '../forms/JobForm';
-import { getOccupiedTimeSlots, formatTimeSlot } from '../../utils/timeSlotUtils';
 import axios from 'axios';
 import TimeTracker from '../worker/TimeTracker';
+import JobStatusControls from '../worker/JobStatusControls';
+import { getOccupiedTimeSlots, formatTimeSlot } from '../../utils/timeSlotUtils';
+import { API_BASE_URL } from '../../config/api.js';
 
 // Helper function to parse date string as local date (avoiding timezone shift)
 const parseLocalDate = (dateString) => {
@@ -22,7 +24,7 @@ const parseLocalDate = (dateString) => {
   return new Date(year, month - 1, day);
 };
 
-const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeChange, onJobSelect }) => {
+const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeChange, onJobSelect, isNested = false }) => {
   const dispatch = useDispatch();
   const { t } = useTranslation();
   const { user, userType } = useSelector((state) => state.auth);
@@ -191,7 +193,6 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
   // Handle status action for workers
   const handleStatusAction = async (status, jobId, clientAddress) => {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
       const token = user?.token;
       
       // Update worker status
@@ -354,8 +355,8 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
     setCurrentDate(newDate);
   };
 
-  return (
-    <div className="bg-gray-800 rounded-lg p-2 sm:p-4 h-full">
+  const calendarContent = (
+    <>
       {/* Header with view mode buttons and navigation - Compact */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2">
         <h2 className="text-sm sm:text-base font-semibold text-white">
@@ -413,7 +414,6 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
         </div>
       </div>
 
-      <DragDropContext onDragEnd={handleDragEnd}>
         {/* Week View - Special Layout: 6 days in 2 rows, Sunday wide below */}
         {viewMode === 'week' ? (
           <div className="space-y-2">
@@ -673,7 +673,18 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
             </div>
           </div>
         )}
-      </DragDropContext>
+    </>
+  );
+
+  return (
+    <div className="bg-gray-800 rounded-lg p-2 sm:p-4 h-full">
+      {isNested ? (
+        calendarContent
+      ) : (
+        <DragDropContext onDragEnd={handleDragEnd}>
+          {calendarContent}
+        </DragDropContext>
+      )}
 
       {/* Job Details Modal */}
       {selectedJob && (
@@ -681,7 +692,7 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
           <div className="bg-gray-800 rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="flex justify-between items-start mb-4">
-              <h3 className="text-xl font-bold text-white">Job Details</h3>
+              <h3 className="text-xl font-bold text-white">{t('jobs.jobDetails')}</h3>
               <button
                 onClick={() => setSelectedJob(null)}
                 className="text-gray-400 hover:text-white"
@@ -698,26 +709,26 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
               <div className="bg-gray-700 rounded p-4">
                 <h4 className="font-semibold text-white text-sm mb-3 flex items-center gap-2">
                   <User className="h-4 w-4" />
-                  Client Info
+                  {t('jobs.clientInfo')}
                 </h4>
                 <div className="text-sm text-gray-300 space-y-2">
                   <div className="flex gap-2">
-                    <span className="text-gray-400 min-w-[100px]">Name:</span>
+                    <span className="text-gray-400 min-w-[100px]">{t('jobs.name')}:</span>
                     <span className="flex-1 font-medium">{selectedJob.clientName}</span>
                   </div>
                   <div className="flex gap-2">
-                    <span className="text-gray-400 min-w-[100px]">Phone:</span>
+                    <span className="text-gray-400 min-w-[100px]">{t('jobs.phone')}:</span>
                     <span className="flex-1">{selectedJob.clientPhone}</span>
                   </div>
                   {selectedJob.clientEmail && (
                     <div className="flex gap-2">
-                      <span className="text-gray-400 min-w-[100px]">Email:</span>
+                      <span className="text-gray-400 min-w-[100px]">{t('jobs.email')}:</span>
                       <span className="flex-1">{selectedJob.clientEmail}</span>
                     </div>
                   )}
                   {selectedJob.clientAddress && (
                     <div className="flex gap-2">
-                      <span className="text-gray-400 min-w-[100px]">Address:</span>
+                      <span className="text-gray-400 min-w-[100px]">{t('jobs.address')}:</span>
                       <span className="flex-1">{selectedJob.clientAddress}</span>
                     </div>
                   )}
@@ -728,38 +739,38 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
               <div className="bg-gray-700 rounded p-4">
                 <h4 className="font-semibold text-white text-sm mb-3 flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Service Details
+                  {t('jobs.serviceDetails')}
                 </h4>
                 <div className="text-sm text-gray-300 space-y-2">
                   {selectedJob.serviceDate && (
                     <div className="flex gap-2">
-                      <span className="text-gray-400 min-w-[100px]">Date:</span>
+                      <span className="text-gray-400 min-w-[100px]">{t('jobs.date')}:</span>
                       <span className="flex-1">{new Date(selectedJob.serviceDate).toLocaleDateString('sr-RS')}</span>
                     </div>
                   )}
                   {selectedJob.scheduledTime && (
                     <div className="flex gap-2">
-                      <span className="text-gray-400 min-w-[100px]">Time:</span>
+                      <span className="text-gray-400 min-w-[100px]">{t('jobs.time')}:</span>
                       <span className="flex-1">{selectedJob.scheduledTime}</span>
                     </div>
                   )}
                   {selectedJob.estimatedDuration && (
                     <div className="flex gap-2">
-                      <span className="text-gray-400 min-w-[100px]">Duration:</span>
+                      <span className="text-gray-400 min-w-[100px]">{t('jobs.duration')}:</span>
                       <span className="flex-1 text-blue-400 font-medium">{selectedJob.estimatedDuration}h</span>
                     </div>
                   )}
                   <div className="flex gap-2">
-                    <span className="text-gray-400 min-w-[100px]">Status:</span>
+                    <span className="text-gray-400 min-w-[100px]">{t('jobs.status')}:</span>
                     <span className="flex-1">{selectedJob.status}</span>
                   </div>
                   <div className="flex gap-2">
-                    <span className="text-gray-400 min-w-[100px]">Priority:</span>
+                    <span className="text-gray-400 min-w-[100px]">{t('jobs.priority')}:</span>
                     <span className="flex-1">{selectedJob.priority}</span>
                   </div>
                   {selectedJob.assignedTo && (
                     <div className="flex gap-2">
-                      <span className="text-gray-400 min-w-[100px]">Assigned to:</span>
+                      <span className="text-gray-400 min-w-[100px]">{t('jobs.assignedTo')}:</span>
                       <span className="flex-1">{selectedJob.assignedTo}</span>
                     </div>
                   )}
@@ -769,7 +780,7 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
               {/* Issue Description */}
               {selectedJob.issueDescription && (
                 <div className="bg-gray-700 rounded p-4">
-                  <h4 className="font-semibold text-white text-sm mb-3">Issue Description</h4>
+                  <h4 className="font-semibold text-white text-sm mb-3">{t('jobs.issueDescription')}</h4>
                   <p className="text-sm text-gray-300">{selectedJob.issueDescription}</p>
                 </div>
               )}
@@ -777,6 +788,20 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
 
               {/* Right Column */}
               <div className="space-y-4">
+              {/* Timer Controls - Same as Worker Dashboard */}
+              {user && user.result && (
+                <div className="bg-gray-700 rounded p-4">
+                  <JobStatusControls 
+                    job={selectedJob} 
+                    user={user}
+                    onStatusUpdate={(newStatus) => {
+                      // Refresh jobs after status update
+                      const businessType = user?.result?.businessType || 'Home Appliance Technician';
+                      dispatch(getJobs(businessType));
+                    }}
+                  />
+                </div>
+              )}
 
               {/* Admin Action Buttons */}
               <div className="flex gap-3 pt-4 border-t border-gray-600">
@@ -788,14 +813,14 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                 >
                   <Edit className="h-4 w-4" />
-                  Edit Job
+                  {t('jobs.editJob')}
                 </button>
                 <button
                   onClick={() => handleDeleteJob(selectedJob)}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
                 >
                   <Trash2 className="h-4 w-4" />
-                  Delete Job
+                  {t('jobs.deleteJob')}
                 </button>
               </div>
               </div>
@@ -809,7 +834,7 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4 sticky top-0 bg-gray-800 pb-4 border-b border-gray-700">
-              <h2 className="text-xl font-bold text-white">Edit Job</h2>
+              <h2 className="text-xl font-bold text-white">{t('jobs.editJob')}</h2>
               <button
                 onClick={() => setEditingJob(null)}
                 className="text-gray-400 hover:text-white"

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, Routes, Route, Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
@@ -10,6 +10,7 @@ import JobsDashboard from '../../components/dashboard/JobsDashboard';
 import ClientsView from '../../components/views/ClientsView';
 import ArchiveView from '../../components/views/ArchiveView';
 import WorkersView from '../../components/views/actionview/WorkersView';
+import ServicesView from '../../components/views/actionview/ServicesView';
 import SparePartsView from '../../components/dashboard/SparePartsView';
 import CompanyInfoView from '../../components/views/companyview/CompanyInfoView';
 import InventoryView from '../../components/views/companyview/InventoryView';
@@ -26,6 +27,7 @@ import PremiumView from '../../components/views/packageview/PremiumView';
 import TutorialsView from '../../components/views/packageview/TutorialsView';
 import SuperAdminDashboard from '../../components/views/superadmin/SuperAdminDashboard';
 import StatusView from '../../components/views/actionview/StatusView';
+import AIBusinessView from '../../components/views/actionview/AIBusinessView';
 import UserManagementView from '../../components/views/profileview/UserManagementView';
 import WorkerDashboard from '../../components/views/WorkerDashboard';
 import WireTransferView from '../../components/views/paymentsview/WireTransferView';
@@ -278,6 +280,8 @@ const Dashboard = () => {
             <Route path="/" element={<DashboardHome />} />
             <Route path="/jobs" element={<JobsDashboard />} />
             <Route path="/status" element={<StatusView />} />
+            <Route path="/ai-business" element={<AIBusinessView />} />
+            <Route path="/services" element={<ServicesView title="Usluge" />} />
             <Route path="/clients" element={<ClientsView />} />
             <Route path="/archive" element={<ArchiveView />} />
             <Route path="/workers" element={<WorkersView />} />
@@ -337,6 +341,8 @@ const Dashboard = () => {
           <Route path="/" element={<DashboardHome />} />
           <Route path="/jobs/*" element={<JobsDashboard />} />
           <Route path="/status" element={<StatusView />} />
+          <Route path="/ai-business" element={<AIBusinessView />} />
+          <Route path="/services" element={<ServicesView title="Usluge" />} />
           <Route path="/clients/*" element={<ClientsView />} />
           <Route path="/archive" element={<ArchiveView />} />
           <Route path="/workers/*" element={<WorkersView />} />

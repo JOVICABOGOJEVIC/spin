@@ -53,10 +53,14 @@ export const updateJob = createAsyncThunk(
   "job/updateJob",
   async ({ id, jobData }, { rejectWithValue }) => {
     try {
-      const response = await api.updateJob(id, jobData);
+      if (!id) {
+        console.error('❌ updateJob called with undefined id');
+        return rejectWithValue({ message: 'Job ID is required' });
+      }
+      const response = await api.updateJob({ id, jobData });
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || { message: 'Failed to update job' });
     }
   }
 );

@@ -204,7 +204,7 @@ const CompanyInfoView = () => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <section className="bg-gray-800 rounded-xl border border-gray-700 p-6 shadow-lg">
-            <h2 className="text-lg font-semibold text-white mb-4">Osnovne informacije</h2>
+            <h2 className="text-lg font-semibold text-white mb-4">Osnovni podaci</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className={labelClass} htmlFor="companyName">Naziv kompanije</label>

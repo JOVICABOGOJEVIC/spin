@@ -93,10 +93,7 @@ const RegisterCompanyNew = () => {
     try {
       await dispatch(registerCompany({
         formData: { ...formData, countryCode },
-        navigate,
-        onSuccess: () => {
-          toast.success("Company registered successfully!");
-        }
+        navigate
       }));
     } catch (error) {
       console.error("Registration error:", error);

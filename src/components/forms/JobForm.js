@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { createJob, updateJob, clearCurrentJob, getJobs } from '../../redux/features/jobSlice';
 import { getWorkers } from '../../redux/features/workerSlice';
 import { createClientAsync, fetchClientsAsync } from '../../redux/features/clientSlice';
@@ -12,6 +13,7 @@ import JobFormSection from './job/JobFormSection';
 import { getSpareParts, createSparePart } from '../../redux/features/sparePartSlice';
 import { COUNTRY_DATA } from '../../utils/countryData';
 import { checkJobOverlap, formatTimeSlot, addHoursToTime } from '../../utils/timeSlotUtils';
+import { extractJobDataFromMessage, fetchDeviceCategories, fetchServicesList } from '../../redux/api';
 
 // Phone prefixes mapping
 const COUNTRY_PREFIXES = {
@@ -24,8 +26,9 @@ const COUNTRY_PREFIXES = {
 };
 
 const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className = '', isModal = false, selectedSlot = null }) => {
+  const { t } = useTranslation();
   const businessType = getBusinessType();
-  const formConfig = getJobFormConfig(businessType);
+  const baseFormConfig = useMemo(() => getJobFormConfig(businessType), [businessType]);
   
   console.log('JobForm initialJobData:', initialJobData);
   console.log('JobForm isEdit:', isEdit);
@@ -54,12 +57,23 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
       date: selectedSlot?.date || '',
       time: selectedSlot?.time || '09:00',
     },
+    deviceCategoryId: '',
+    deviceCategoryName: '',
+    deviceTypeId: '',
+    serviceId: '',
+    serviceName: '',
+    servicePrice: '',
+    serviceDurationMinutes: '',
     status: 'draft', // Default status for new jobs
     serviceLocation: 'OnSite',
     ...transformedInitialData,
   });
   const [workerOptions, setWorkerOptions] = useState([]);
   const [sparePartsOptions, setSparePartsOptions] = useState([]);
+  const [deviceCategories, setDeviceCategories] = useState([]);
+  const [serviceTemplates, setServiceTemplates] = useState([]);
+  const [hierarchyLoading, setHierarchyLoading] = useState(false);
+  const hierarchyErrorShownRef = useRef(false);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [suggestions, setSuggestions] = useState({
     clientName: [],
@@ -73,6 +87,9 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
     clientEmail: false,
     clientAddress: false
   });
+  const [showAiExtraction, setShowAiExtraction] = useState(false);
+  const [aiMessage, setAiMessage] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
   const dispatch = useDispatch();
   
   const jobState = useSelector((state) => state.job);
@@ -86,10 +103,10 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
   const phonePrefix = COUNTRY_PREFIXES[countryCode] || '387';
   
   // Add title display
-  const formTitle = isEdit ? 'Edit Job' : 
+  const formTitle = isEdit ? t('jobs.editJob') : 
     (initialJobData?.displayDateTime ? 
-      `Adding job for ${initialJobData.displayDateTime}` : 
-      'New Job');
+      `${t('jobs.newJob')} - ${initialJobData.displayDateTime}` : 
+      t('jobs.newJob'));
   
   // Format clients for react-select
   const formattedClientOptions = clients ? clients.map(client => ({
@@ -97,6 +114,124 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
     label: `${client.name} - ${client.phone}${client.email ? ` (${client.email})` : ''}`,
     ...client
   })) : [];
+
+  const normalizeId = (value) => {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object') {
+      if (value.id) return value.id.toString();
+      if (value._id) return value._id.toString();
+    }
+    return value.toString();
+  };
+
+  const deviceTypeOptions = useMemo(() => {
+    return deviceCategories.map((category) => {
+      const categoryId = normalizeId(category.id || category._id);
+      return {
+        value: categoryId,
+        label: category.name,
+        categoryId,
+        categoryName: category.name,
+      };
+    }).filter((option) => Boolean(option.value));
+  }, [deviceCategories]);
+
+  const selectedDeviceCategory = useMemo(() => {
+    const categoryIdCandidate = jobData.deviceCategoryId || jobData.deviceTypeId;
+    if (!categoryIdCandidate) return null;
+    const normalized = normalizeId(categoryIdCandidate);
+    return deviceCategories.find((category) => normalizeId(category.id || category._id) === normalized) || null;
+  }, [deviceCategories, jobData.deviceCategoryId, jobData.deviceTypeId]);
+
+  const servicesForSelectedCategory = useMemo(() => {
+    if (!serviceTemplates || serviceTemplates.length === 0) return [];
+    const selectedCategoryId = normalizeId(jobData.deviceCategoryId || jobData.deviceTypeId);
+    if (!selectedCategoryId) return serviceTemplates;
+    return serviceTemplates.filter(
+      (service) => normalizeId(service.deviceCategoryId || service.deviceCategory?.id) === selectedCategoryId
+    );
+  }, [serviceTemplates, jobData.deviceCategoryId, jobData.deviceTypeId]);
+
+  const serviceOptions = useMemo(() => {
+    return servicesForSelectedCategory.map((service) => ({
+      value: normalizeId(service.id || service._id),
+      label: service.name,
+      deviceCategoryId: normalizeId(service.deviceCategoryId || service.deviceCategory?.id),
+      price: service.price ?? '',
+      durationMinutes: service.durationMinutes ?? null,
+      name: service.name,
+    }));
+  }, [servicesForSelectedCategory]);
+
+  const resolvedFormConfig = useMemo(() => {
+    const config = { ...baseFormConfig };
+    if (config.deviceType) {
+      config.deviceType = {
+        ...config.deviceType,
+        required: false,
+        options: deviceTypeOptions,
+      };
+    }
+    if (config.serviceId) {
+      config.serviceId = {
+        ...config.serviceId,
+        required: false,
+        options: serviceOptions,
+      };
+    }
+    return config;
+  }, [baseFormConfig, deviceTypeOptions, serviceOptions]);
+
+  const selectedService = useMemo(() => {
+    if (!jobData.serviceId) return null;
+    return serviceTemplates.find((service) => normalizeId(service.id || service._id) === normalizeId(jobData.serviceId)) || null;
+  }, [serviceTemplates, jobData.serviceId]);
+  
+  useEffect(() => {
+    if (jobData.deviceCategoryId || !jobData.deviceType || deviceCategories.length === 0) {
+      return;
+    }
+    const match = deviceCategories.find(
+      (category) => category.name?.toLowerCase() === jobData.deviceType.toLowerCase()
+    );
+    if (!match) return;
+    const matchId = normalizeId(match.id || match._id);
+
+    setJobData((prev) => {
+      if (normalizeId(prev.deviceCategoryId) === matchId) {
+        return prev;
+      }
+      return {
+        ...prev,
+        deviceCategoryId: matchId,
+        deviceCategoryName: match.name || prev.deviceCategoryName || '',
+        deviceTypeId: matchId,
+      };
+    });
+  }, [deviceCategories, jobData.deviceType, jobData.deviceCategoryId]);
+
+  useEffect(() => {
+    if (jobData.serviceId || !jobData.serviceName || serviceTemplates.length === 0) {
+      return;
+    }
+    const match = serviceTemplates.find((service) => service.name?.toLowerCase() === jobData.serviceName.toLowerCase());
+    if (!match) return;
+    const matchId = normalizeId(match.id || match._id);
+    setJobData((prev) => {
+      if (normalizeId(prev.serviceId) === matchId) {
+        return prev;
+      }
+      return {
+        ...prev,
+        serviceId: matchId,
+        servicePrice: match.price ?? prev.servicePrice,
+        deviceCategoryId: normalizeId(match.deviceCategoryId || match.deviceCategory?.id) || prev.deviceCategoryId,
+        deviceCategoryName: match.deviceCategory?.name || prev.deviceCategoryName,
+        deviceTypeId: normalizeId(match.deviceCategoryId || match.deviceCategory?.id) || prev.deviceTypeId,
+      };
+    });
+  }, [serviceTemplates, jobData.serviceName, jobData.serviceId]);
   
   useEffect(() => {
     console.log('🎯 JobForm: useEffect triggered - fetching workers and clients');
@@ -107,6 +242,85 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
     dispatch(getWorkers());
     dispatch(fetchClientsAsync());
   }, [dispatch]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadHierarchy = async () => {
+      if (!user?.token) {
+        return;
+      }
+      setHierarchyLoading(true);
+      hierarchyErrorShownRef.current = false;
+      try {
+        const [categoriesResult, servicesResult] = await Promise.allSettled([
+          fetchDeviceCategories(),
+          fetchServicesList()
+        ]);
+
+        if (!isMounted) return;
+
+        if (categoriesResult.status === 'fulfilled') {
+          setDeviceCategories(Array.isArray(categoriesResult.value?.data) ? categoriesResult.value.data : []);
+        } else {
+          console.error('Greška pri učitavanju kategorija uređaja:', categoriesResult.reason);
+          setDeviceCategories([]);
+          if (!hierarchyErrorShownRef.current) {
+            toast.error('Ne možemo da učitamo kategorije uređaja. Proveri vezu sa serverom.');
+            hierarchyErrorShownRef.current = true;
+          }
+        }
+
+        if (servicesResult.status === 'fulfilled') {
+          setServiceTemplates(Array.isArray(servicesResult.value?.data) ? servicesResult.value.data : []);
+        } else {
+          console.error('Greška pri učitavanju usluga:', servicesResult.reason);
+          setServiceTemplates([]);
+          if (!hierarchyErrorShownRef.current) {
+            const status = servicesResult.reason?.response?.status;
+            const backendMessage = servicesResult.reason?.response?.data?.message;
+            let message = 'Ne možemo da učitamo usluge. Proveri vezu sa serverom.';
+            if (status === 401) {
+              message = 'Sesija je istekla ili nemaš dozvolu za listu usluga.';
+            } else if (status === 404) {
+              message = 'Usluge još nisu podešene. Dodaj ih u sekciji "Usluge".';
+            } else if (backendMessage) {
+              message += ` (${backendMessage})`;
+            }
+            toast.error(message);
+            hierarchyErrorShownRef.current = true;
+          }
+        }
+      } catch (error) {
+        console.error('Greška pri učitavanju liste usluga:', error);
+        setDeviceCategories([]);
+        setServiceTemplates([]);
+        if (!hierarchyErrorShownRef.current) {
+          const status = error?.response?.status;
+          const backendMessage = error?.response?.data?.message;
+          let message = 'Ne možemo da učitamo hijerarhiju usluga. Proveri da li je backend pokrenut.';
+          if (status === 401) {
+            message = 'Sesija je istekla ili nemaš dozvolu za hijerarhiju usluga.';
+          } else if (status === 404) {
+            message = 'Hijerarhija usluga još nije podešena. Dodaj kategorije i usluge u sekciji "Usluge".';
+          } else if (backendMessage) {
+            message += ` (${backendMessage})`;
+          }
+          toast.error(message);
+          hierarchyErrorShownRef.current = true;
+        }
+      } finally {
+        if (isMounted) {
+          setHierarchyLoading(false);
+        }
+      }
+    };
+
+    loadHierarchy();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.token]);
   
   useEffect(() => {
     // Use initialJobData if provided directly, otherwise use currentJob from Redux
@@ -306,6 +520,72 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
       }));
     }
   };
+
+  const handleDeviceTypeSelect = useCallback((categoryId) => {
+    if (!categoryId) {
+      setJobData(prev => ({
+        ...prev,
+        deviceCategoryId: '',
+        deviceCategoryName: '',
+        deviceTypeId: '',
+        deviceType: '',
+        serviceId: '',
+        serviceName: '',
+        servicePrice: '',
+        serviceDurationMinutes: '',
+      }));
+      return;
+    }
+
+    const category = deviceCategories.find((item) => normalizeId(item.id || item._id) === categoryId);
+    const label = category?.name || deviceTypeOptions.find(option => option.value === categoryId)?.categoryName || '';
+
+    setJobData(prev => ({
+      ...prev,
+      deviceTypeId: categoryId,
+      deviceType: label || prev.deviceType,
+      deviceCategoryId: categoryId,
+      deviceCategoryName: label || prev.deviceCategoryName,
+      serviceId: '',
+      serviceName: '',
+      servicePrice: '',
+      serviceDurationMinutes: '',
+    }));
+  }, [deviceCategories, deviceTypeOptions, normalizeId]);
+
+  const handleServiceSelect = useCallback((serviceId) => {
+    if (!serviceId) {
+      setJobData(prev => ({
+        ...prev,
+        serviceId: '',
+        serviceName: '',
+        servicePrice: '',
+        serviceDurationMinutes: null,
+      }));
+      return;
+    }
+
+    const serviceOption = serviceOptions.find(option => option.value === serviceId);
+    const serviceEntity = serviceTemplates.find(service => normalizeId(service.id || service._id) === serviceId);
+    const relatedCategoryId = serviceOption?.deviceCategoryId || normalizeId(serviceEntity?.deviceCategoryId || serviceEntity?.deviceCategory?.id);
+    const relatedCategory = deviceCategories.find(category => normalizeId(category.id || category._id) === relatedCategoryId);
+
+    setJobData(prev => ({
+      ...prev,
+      serviceId,
+      serviceName: serviceEntity?.name || serviceOption?.label || prev.serviceName,
+      servicePrice: serviceEntity?.price ?? serviceOption?.price ?? prev.servicePrice,
+      deviceCategoryId: relatedCategoryId || prev.deviceCategoryId,
+      deviceCategoryName: relatedCategory?.name || prev.deviceCategoryName,
+      deviceTypeId: relatedCategoryId || prev.deviceTypeId,
+      deviceType: relatedCategory?.name || prev.deviceType,
+      serviceDurationMinutes: serviceEntity?.durationMinutes ?? serviceOption?.durationMinutes ?? prev.serviceDurationMinutes ?? null,
+      estimatedDuration:
+        serviceEntity?.durationMinutes !== undefined && serviceEntity?.durationMinutes !== null
+          ? Number((serviceEntity.durationMinutes / 60).toFixed(2))
+          : prev.estimatedDuration,
+    }));
+  }, [deviceCategories, serviceOptions, serviceTemplates, normalizeId]);
   
   const handleSelectChange = (selectedOption, { name }) => {
     console.log('Select changed:', name, selectedOption); // Za debugging
@@ -331,13 +611,118 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
     }
   };
   
-  const handleSparePartsChange = (selectedOptions) => {
-    setJobData({
-      ...jobData,
-      usedSpareParts: selectedOptions
-    });
-  };
+  const handleSparePartsChange = useCallback((selectedOptions) => {
+    setJobData(prev => ({
+      ...prev,
+      usedSpareParts: selectedOptions,
+    }));
+  }, []);
+
+  const handleFieldChange = useCallback(
+    (field, value) => {
+      if (field === 'clientAddress' || field === 'serviceDateTime') {
+        handleInputChange(field, value);
+        return;
+      }
+      if (field === 'usedSpareParts') {
+        handleSparePartsChange(value);
+        return;
+      }
+      if (field === 'deviceType') {
+        handleDeviceTypeSelect(value);
+        return;
+      }
+      if (field === 'serviceId') {
+        handleServiceSelect(value);
+        return;
+      }
+      handleInputChange(field, value);
+    },
+    [handleDeviceTypeSelect, handleInputChange, handleServiceSelect, handleSparePartsChange]
+  );
   
+  // Handle AI extraction from message
+  const handleAiExtraction = async () => {
+    if (!aiMessage.trim()) {
+      toast.error('Molimo unesite poruku za ekstrakciju');
+      return;
+    }
+
+    setAiLoading(true);
+    try {
+      const response = await extractJobDataFromMessage(aiMessage.trim());
+      
+      if (response.data && response.data.success && response.data.data) {
+        const extractedData = response.data.data;
+        
+        // Process and populate form with extracted data
+        const updatedJobData = {
+          ...jobData,
+          clientName: extractedData.clientName || jobData.clientName || '',
+          clientPhone: extractedData.clientPhone || jobData.clientPhone || '',
+          clientEmail: extractedData.clientEmail || jobData.clientEmail || '',
+          deviceType: extractedData.deviceType || jobData.deviceType || '',
+          deviceBrand: extractedData.deviceBrand || jobData.deviceBrand || '',
+          deviceModel: extractedData.deviceModel || jobData.deviceModel || '',
+          deviceSerialNumber: extractedData.deviceSerialNumber || jobData.deviceSerialNumber || '',
+          issueDescription: extractedData.issueDescription || jobData.issueDescription || '',
+          priority: extractedData.priority || jobData.priority || 'medium',
+        };
+
+        // Handle address
+        if (extractedData.clientAddress) {
+          // Try to parse address if it's a string
+          if (typeof extractedData.clientAddress === 'string') {
+            updatedJobData.clientAddress = {
+              street: extractedData.clientAddress,
+              number: '',
+              floor: '',
+              apartment: '',
+            };
+          } else {
+            updatedJobData.clientAddress = {
+              ...jobData.clientAddress,
+              ...extractedData.clientAddress,
+            };
+          }
+        }
+
+        // Handle service date and time
+        if (extractedData.serviceDate) {
+          updatedJobData.serviceDateTime = {
+            ...jobData.serviceDateTime,
+            date: extractedData.serviceDate,
+            time: extractedData.serviceTime || jobData.serviceDateTime.time || '09:00',
+          };
+        } else if (extractedData.serviceTime) {
+          updatedJobData.serviceDateTime = {
+            ...jobData.serviceDateTime,
+            time: extractedData.serviceTime,
+          };
+        }
+
+        // Update phone prefix if phone is provided
+        if (extractedData.clientPhone && !extractedData.clientPhone.startsWith('+')) {
+          const phoneWithoutPrefix = extractedData.clientPhone.replace(/^\+?[0-9]+/, '');
+          updatedJobData.clientPhone = `+${phonePrefix}${phoneWithoutPrefix}`;
+        }
+
+        setJobData(updatedJobData);
+        setShowAiExtraction(false);
+        setAiMessage('');
+        toast.success('Podaci su uspešno izvučeni i popunjeni u formu!');
+      } else {
+        toast.error('Nije moguće izvući podatke iz poruke. Molimo pokušajte ponovo.');
+      }
+    } catch (error) {
+      console.error('Error extracting data from message:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Greška pri ekstrakciji podataka';
+      toast.error(errorMessage);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const handleQuickAddSparePart = async (e) => {
     e.preventDefault();
     
@@ -606,10 +991,26 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
       clientEmail: jobData.clientEmail || 'no-email@example.com',
       clientAddress: addressString,
       serviceLocation: jobData.serviceLocation || 'OnSite',
+      deviceCategoryId: jobData.deviceCategoryId || null,
+      deviceCategoryName: jobData.deviceCategoryName || '',
+      deviceTypeId: jobData.deviceTypeId || null,
       deviceType: jobData.deviceType || 'Unknown Device',
       deviceBrand: jobData.deviceBrand || 'Unknown Brand',
       deviceModel: jobData.deviceModel || 'Unknown Model',
       deviceSerialNumber: jobData.deviceSerialNumber || 'N/A',
+      serviceId: jobData.serviceId || null,
+      serviceName: jobData.serviceName || '',
+      servicePrice: (() => {
+        if (jobData.servicePrice === '' || jobData.servicePrice === null || jobData.servicePrice === undefined) {
+          return null;
+        }
+        const numeric = Number(jobData.servicePrice);
+        return Number.isFinite(numeric) ? numeric : null;
+      })(),
+    serviceDurationMinutes:
+      jobData.serviceDurationMinutes === undefined || jobData.serviceDurationMinutes === null
+        ? null
+        : Number(jobData.serviceDurationMinutes),
       issueDescription: jobData.issueDescription || 'No description provided',
       priority: jobData.priority ? jobData.priority.charAt(0).toUpperCase() + jobData.priority.slice(1).toLowerCase() : 'Medium',
       warranty: jobData.warranty || false,
@@ -634,6 +1035,11 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
 
     try {
       if (isEdit) {
+        if (!jobData?._id) {
+          console.error('❌ Cannot update job: jobData._id is undefined');
+          toast.error('Greška: ID posla nije definisan');
+          return;
+        }
         dispatch(updateJob({ id: jobData._id, jobData: transformedData }));
         toast.success('Job updated successfully');
       } else {
@@ -647,14 +1053,11 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
     }
   };
   
-  const renderAddressFields = () => null;
-  const renderDateTimeField = () => null;
-  const renderServiceLocation = () => null;
 
   // Update sections structure
   const sections = {
     clientInfo: {
-      title: 'Client Info',
+      title: t('jobs.clientInfo'),
       fields: [
         'clientName',
         'clientPhone',
@@ -664,16 +1067,17 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
       ]
     },
     deviceInfo: {
-      title: 'Device Info',
+      title: t('jobs.deviceInfo'),
       fields: [
         'deviceType', 
+        'serviceId',
         'deviceBrand', 
         'deviceModel', 
         'deviceSerialNumber'
       ]
     },
     serviceInfo: {
-      title: 'Service Info',
+      title: t('jobs.serviceInfo'),
       fields: [
         'serviceType',
         'serviceDateTime',
@@ -684,7 +1088,7 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
       ]
     },
     additionalInfo: {
-      title: 'Additional Info',
+      title: t('jobs.additionalInfo'),
       fields: [
         'issueDescription',
         'priority',
@@ -697,171 +1101,6 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
   // Update input class for smaller size
   const inputClass = "mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-1.5 px-2";
 
-  // Determine if a field should be visible for current config/state
-  const isFieldVisible = (fieldName) => {
-    if (!formConfig[fieldName]) return false;
-    if (fieldName === 'clientAddress' && jobData.serviceLocation !== 'OnSite') return false;
-    return true;
-  };
-
-  const renderField = (fieldName, fieldConfig) => {
-    if (!fieldConfig) {
-      return null;
-    }
-    if (fieldName === 'clientPhone') {
-      return (
-        <div key={fieldName} className="relative suggestions-container mb-3">
-          <label className="block text-sm font-medium text-gray-200 mb-1">
-            {fieldConfig.label}
-          </label>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowCountryDropdown(!showCountryDropdown)}
-                className="flex items-center px-2 py-1.5 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <img
-                  src={`https://flagcdn.com/${countryCode}.svg`}
-                  alt={COUNTRY_DATA[countryCode]?.name}
-                  className="h-4 w-6"
-                  onError={(e) => {
-                    console.error("Flag loading error:", e);
-                    e.target.src = `https://flagcdn.com/ba.svg`;
-                  }}
-                />
-                <svg
-                  className="w-4 h-4 ml-1 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-
-              {showCountryDropdown && (
-                <div className="absolute top-full left-0 mt-1 w-64 max-h-60 overflow-y-auto bg-gray-700 border border-gray-600 rounded-md shadow-lg z-50">
-                  {Object.entries(COUNTRY_DATA).map(([code, { name, code: prefix }]) => (
-                    <button
-                      key={code}
-                      type="button"
-                      className="flex items-center w-full px-3 py-2 text-sm text-white hover:bg-gray-600"
-                      onClick={() => {
-                        const oldPrefix = COUNTRY_DATA[countryCode].code;
-                        setJobData(prev => ({
-                          ...prev,
-                          clientPhone: prev.clientPhone.replace(`+${oldPrefix}`, `+${prefix}`)
-                        }));
-                        setShowCountryDropdown(false);
-                      }}
-                    >
-                      <img
-                        src={`https://flagcdn.com/${code}.svg`}
-                        alt={name}
-                        className="h-4 w-6 mr-2"
-                        onError={(e) => {
-                          e.target.src = `https://flagcdn.com/ba.svg`;
-                        }}
-                      />
-                      <span className="flex-1">{name}</span>
-                      <span className="text-gray-400 ml-2">+{prefix}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <input
-              type="tel"
-              name={fieldName}
-              value={jobData[fieldName] || ''}
-              onChange={handleClientFieldChange}
-              className={inputClass}
-              placeholder="Enter phone number"
-              required={fieldConfig.required}
-            />
-          </div>
-          {showSuggestions[fieldName] && suggestions[fieldName]?.length > 0 && (
-            <div className="absolute z-50 w-full mt-1 bg-gray-700 shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
-              {suggestions[fieldName].map((client, index) => (
-                <div
-                  key={client._id || index}
-                  className="cursor-pointer hover:bg-gray-600 px-4 py-2 transition-colors duration-150 text-white"
-                  onClick={() => handleSuggestionSelect(client, fieldName)}
-                >
-                  <div className="flex flex-col">
-                    <span className="font-medium">{client.phone}</span>
-                    <span className="text-xs text-gray-400">{client.name} - {client.email || 'No email'}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    if (fieldName === 'priority') {
-      return (
-        <div key={fieldName} className="mb-3">
-          <label className="block text-sm font-medium text-gray-200 mb-1">
-            Priority
-          </label>
-          <select
-            name={fieldName}
-            value={jobData[fieldName] || 'medium'}
-            onChange={handleClientFieldChange}
-            className={inputClass}
-          >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="urgent">Urgent</option>
-          </select>
-        </div>
-      );
-    }
-
-    if (fieldName === 'warranty') {
-      return (
-        <div key={fieldName} className="mb-3">
-          <label className="block text-sm font-medium text-gray-200 mb-1">
-            Warranty
-          </label>
-          <select
-            name={fieldName}
-            value={jobData[fieldName] || 'no'}
-            onChange={handleClientFieldChange}
-            className={inputClass}
-          >
-            <option value="no">No Warranty</option>
-            <option value="yes">Under Warranty</option>
-          </select>
-        </div>
-      );
-    }
-
-    return (
-      <div key={fieldName}>
-        <FieldRenderer
-          fieldName={fieldName}
-          fieldConfig={fieldConfig}
-          value={fieldName === 'clientAddress' ? jobData.clientAddress : jobData[fieldName]}
-          onChange={(name, val) => {
-            if (name === 'clientAddress' || name === 'serviceDateTime') return handleInputChange(name, val);
-            if (name === 'usedSpareParts') return handleSparePartsChange(val);
-            setJobData(prev => ({ ...prev, [name]: val }));
-          }}
-          inputClass={inputClass}
-          workerOptions={workerOptions}
-          sparePartsOptions={sparePartsOptions}
-          serviceLocation={jobData.serviceLocation}
-          onQuickAddSparePart={handleQuickAddSparePart}
-        />
-      </div>
-    );
-  };
-
   return (
     <form onSubmit={handleSubmit} className={`w-full ${className}`}>
       {isModal && (
@@ -869,8 +1108,75 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
           <h2 className="text-xl font-bold text-gray-200">{formTitle}</h2>
           {!isEdit && initialJobData?.displayDateTime && (
             <p className="text-sm text-gray-400 mt-1">
-              Please fill in the job details below
+              {t('jobs.fillJobDetails')}
             </p>
+          )}
+        </div>
+      )}
+
+      {/* AI Extraction Section */}
+      {!isEdit && (
+        <div className="mb-6 p-4 bg-gray-800 rounded-lg border border-gray-700">
+          <button
+            type="button"
+            onClick={() => setShowAiExtraction(!showAiExtraction)}
+            className="flex items-center justify-between w-full text-left focus:outline-none"
+          >
+            <div className="flex items-center">
+              <svg
+                className={`w-5 h-5 mr-2 text-blue-400 transition-transform ${showAiExtraction ? 'transform rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+              <span className="text-sm font-medium text-gray-200">
+                🤖 AI Ekstrakcija iz SMS/Viber poruke
+              </span>
+            </div>
+            <span className="text-xs text-gray-400">
+              Nalepite poruku i automatski izvuci podatke
+            </span>
+          </button>
+
+          {showAiExtraction && (
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Nalepite tekst SMS ili Viber poruke:
+                </label>
+                <textarea
+                  value={aiMessage}
+                  onChange={(e) => setAiMessage(e.target.value)}
+                  placeholder="Primer: Zdravo, ja sam Marko Petrović, telefon 0651234567. Imam problem sa Samsung Galaxy S21, ne pali se ekran. Možete li doći sutra u 14h na adresu Bulevar kralja Aleksandra 15?"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  rows={4}
+                  disabled={aiLoading}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleAiExtraction}
+                disabled={aiLoading || !aiMessage.trim()}
+                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {aiLoading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Procesiranje...
+                  </>
+                ) : (
+                  'Procesiraj poruku i popuni formu'
+                )}
+              </button>
+              <p className="text-xs text-gray-400">
+                AI će automatski izvući: ime, telefon, adresu, uređaj, problem i ostale podatke iz poruke.
+              </p>
+            </div>
           )}
         </div>
       )}
@@ -882,17 +1188,13 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
             key={sectionKey}
             title={section.title}
             fields={section.fields}
-            formConfig={formConfig}
+            formConfig={resolvedFormConfig}
             jobData={jobData}
             inputClass={inputClass}
             workerOptions={workerOptions}
             sparePartsOptions={sparePartsOptions}
             serviceLocation={jobData.serviceLocation}
-            onChange={(name, val) => {
-              if (name === 'clientAddress' || name === 'serviceDateTime') return handleInputChange(name, val);
-              if (name === 'usedSpareParts') return handleSparePartsChange(val);
-              setJobData(prev => ({ ...prev, [name]: val }));
-            }}
+            onChange={handleFieldChange}
             onQuickAddSparePart={handleQuickAddSparePart}
           />
         ))}
@@ -905,7 +1207,7 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
           onClick={onClose}
           className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 rounded-md hover:bg-gray-600"
         >
-          Cancel
+          {t('common.cancel')}
         </button>
         <button
           type="button"
@@ -916,14 +1218,14 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
           className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-600 rounded-md hover:bg-gray-500"
           disabled={jobState.loading}
         >
-          {jobState.loading ? 'Saving...' : 'Save as Draft'}
+          {jobState.loading ? t('common.saving') : t('jobs.saveAsDraft')}
         </button>
         <button
           type="submit"
           className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
           disabled={jobState.loading}
         >
-          {jobState.loading ? 'Saving...' : (isEdit ? 'Update Job' : 'Create Job')}
+          {jobState.loading ? t('common.saving') : (isEdit ? t('jobs.updateJob') : t('jobs.createJob'))}
         </button>
       </div>
     </form>

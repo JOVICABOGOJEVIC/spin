@@ -1,11 +1,14 @@
 import React from 'react';
 import Select from 'react-select';
+import { useTranslation } from 'react-i18next';
 
 const AssignedToSelect = ({ value, onChange, options }) => {
+  const { t } = useTranslation();
+  
   return (
     <div className="mb-3">
       <label className="block text-sm font-medium text-gray-200 mb-1">
-        Assigned To
+        {t('jobs.assignedTo')}
       </label>
       <Select
         value={options.find(opt => opt.value === value)}
@@ -13,7 +16,7 @@ const AssignedToSelect = ({ value, onChange, options }) => {
         options={options}
         className="react-select-container"
         classNamePrefix="react-select"
-        placeholder="Select worker"
+        placeholder={t('jobs.selectWorker')}
         isClearable
         styles={{
           control: (base) => ({

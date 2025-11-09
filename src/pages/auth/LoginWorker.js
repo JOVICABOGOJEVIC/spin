@@ -6,8 +6,7 @@ import HeaderSite from "../../components/header/HeaderSite";
 import { CustomButton, CustomInput } from "../../components/custom";
 import axios from 'axios';
 import "./auth.css";
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import { API_BASE_URL } from "../../config/api.js";
 
 const LoginWorker = () => {
   const navigate = useNavigate();

@@ -97,7 +97,7 @@ const SparePartForm = ({ isEdit, sparePart, onClose }) => {
           {/* Column 1: Basic Information */}
           <div className="bg-gray-700 p-1.5 rounded-md">
             <h3 className="text-xs font-semibold mb-1.5 text-white flex items-center">
-              Osnovne informacije
+              Osnovni podaci
             </h3>
             
             <div className="space-y-0">

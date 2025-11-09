@@ -87,9 +87,9 @@ const ClientAddressesView = () => {
 
   const getViewDescription = () => {
     if (isAutoMechanic) {
-      return "Prikaz lokacija klijenata i informacije o njihovim vozilima.";
+      return "Prikaz lokacija klijenata i podaci o njihovim vozilima.";
     } else if (isHomeApplianceTechnician) {
-      return "Detalji adresa klijenata za terenske posete sa informacijama o stanu i spratu.";
+      return "Detalji adresa klijenata za terenske posete sa podacima o stanu i spratu.";
     } else {
       return "Adrese klijenata za posete i servis na terenu.";
     }

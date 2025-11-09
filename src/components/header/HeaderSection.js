@@ -6,12 +6,30 @@ import "./header.css"; // CSS za stilizaciju
 import { getBusinessType } from "../../utils/businessTypeUtils";
 import { getSectionTitle, getViewTitle } from '../../utils/sectionTitleUtils';
 
-const HeaderSection = ({ section, view, onAdd, onRead, onBack }) => {
+const HeaderSection = ({ section, view, title, onAdd, onRead, onBack, variant = 'primary' }) => {
   const businessType = getBusinessType();
-  const sectionTitle = getSectionTitle(section);
+
+  const baseSectionKey = section || title || 'Section';
+  const safeSectionKey = typeof baseSectionKey === 'string' ? baseSectionKey : 'Section';
+
+  const computedSectionTitle = getSectionTitle(safeSectionKey);
   const viewTitle = view ? getViewTitle(view) : '';
-  
-  const displayTitle = viewTitle ? `${sectionTitle} - ${viewTitle}` : sectionTitle;
+
+  const displayTitle = viewTitle ? `${computedSectionTitle} - ${viewTitle}` : computedSectionTitle;
+
+  const isDarkVariant = variant === 'dark';
+
+  const headerClassName = `flex items-center justify-between px-6 py-4 ${
+    isDarkVariant
+      ? 'bg-gray-900 text-white border-b border-gray-700'
+      : 'bg-blue-600 text-white'
+  }`;
+
+  const buttonClasses = `p-2 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none ${
+    isDarkVariant
+      ? 'bg-gray-800 text-white hover:bg-gray-700 hover:scale-110'
+      : 'bg-blue-700 text-white hover:bg-blue-800 hover:scale-110'
+  }`;
 
   const handleBackClick = (e) => {
     e.preventDefault();
@@ -26,11 +44,11 @@ const HeaderSection = ({ section, view, onAdd, onRead, onBack }) => {
       initial="hidden"
       animate="visible"
       variants={boxVariants}
-      className="flex items-center justify-between px-6 py-4 bg-blue-600 text-white"
+      className={headerClassName}
     > 
       <button 
         onClick={handleBackClick} 
-        className="p-2 rounded-full bg-blue-700 text-white flex items-center justify-center transition-all duration-300 hover:bg-blue-800 hover:scale-110 focus:outline-none"
+        className={buttonClasses}
         title="Go back"
       >
         <Menu size={24} className="stroke-2"/>
@@ -40,7 +58,7 @@ const HeaderSection = ({ section, view, onAdd, onRead, onBack }) => {
         <button 
           onClick={onAdd} 
           title="Add New" 
-          className="p-2 rounded-full bg-blue-700 text-white flex items-center justify-center transition-all duration-300 hover:bg-blue-800 hover:scale-110 focus:outline-none"
+          className={buttonClasses}
         >
           <Plus size={20} className="stroke-2"/>
         </button>
@@ -49,7 +67,7 @@ const HeaderSection = ({ section, view, onAdd, onRead, onBack }) => {
         <button 
           onClick={onRead} 
           title="View List" 
-          className="p-2 rounded-full bg-blue-700 text-white flex items-center justify-center transition-all duration-300 hover:bg-blue-800 hover:scale-110 focus:outline-none"
+          className={buttonClasses}
         >
           <List size={20} className="stroke-2"/>
         </button>

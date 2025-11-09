@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Play, Pause, Square, Clock, MapPin, Wrench, CheckCircle, X } from 'lucide-react';
 import axios from 'axios';
 import { useWebSocket } from '../../contexts/WebSocketContext';
 import { useDispatch, useSelector } from 'react-redux';
 import { getSpareParts } from '../../redux/features/sparePartSlice';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import { fetchDeviceCategories, fetchServicesList } from '../../redux/api';
+import { API_BASE_URL } from '../../config/api.js';
 
 const JobStatusControls = ({ job, user, onStatusUpdate }) => {
   const { emitJobStatusUpdate } = useWebSocket();
@@ -16,7 +16,6 @@ const JobStatusControls = ({ job, user, onStatusUpdate }) => {
   const [isTraveling, setIsTraveling] = useState(false);
   const [isWorking, setIsWorking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [hasStartedWork, setHasStartedWork] = useState(false);
   const [travelTime, setTravelTime] = useState(0);
   const [workTime, setWorkTime] = useState(0);
   const [timeLogs, setTimeLogs] = useState([]);
@@ -32,8 +31,18 @@ const JobStatusControls = ({ job, user, onStatusUpdate }) => {
     additionalNotes: '',
     usedSpareParts: [] // Add array for multiple spare parts
   });
-  const [totalTravelTime, setTotalTravelTime] = useState(0);
-  const [totalWorkTime, setTotalWorkTime] = useState(0);
+  const [deviceCategories, setDeviceCategories] = useState([]);
+  const [serviceTemplates, setServiceTemplates] = useState([]);
+  const [selectionLoading, setSelectionLoading] = useState(false);
+  const initialCategoryId = job?.deviceCategoryId || job?.deviceTypeId;
+  const [selectedCategoryId, setSelectedCategoryId] = useState(initialCategoryId ? initialCategoryId.toString() : '');
+  const [selectedServiceId, setSelectedServiceId] = useState(job?.serviceId ? job.serviceId.toString() : '');
+  const [selectedServicePrice, setSelectedServicePrice] = useState(job?.servicePrice ?? '');
+  const [selectedServiceName, setSelectedServiceName] = useState(job?.serviceName || '');
+  const [selectedServiceDuration, setSelectedServiceDuration] = useState(
+    job?.serviceDurationMinutes ?? ''
+  );
+  const [selectedCategoryName, setSelectedCategoryName] = useState(job?.deviceCategoryName || '');
   const accumulatedTravelTimeRef = useRef(0);
   const accumulatedWorkTimeRef = useRef(0);
 
@@ -47,11 +56,9 @@ const JobStatusControls = ({ job, user, onStatusUpdate }) => {
       
       if (savedTravelTime) {
         accumulatedTravelTimeRef.current = parseInt(savedTravelTime);
-        setTotalTravelTime(parseInt(savedTravelTime));
       }
       if (savedWorkTime) {
         accumulatedWorkTimeRef.current = parseInt(savedWorkTime);
-        setTotalWorkTime(parseInt(savedWorkTime));
       }
       
       // Load active timer states
@@ -86,7 +93,6 @@ const JobStatusControls = ({ job, user, onStatusUpdate }) => {
         if (now - startTime < 24 * 60 * 60 * 1000) {
           setIsWorking(true);
           setWorkStartTime(startTime);
-          setHasStartedWork(true);
           // Calculate elapsed time from saved start time
           const elapsed = Math.floor((now - startTime) / 1000);
           const currentWorkTime = accumulatedWorkTimeRef.current + elapsed;
@@ -122,6 +128,24 @@ const JobStatusControls = ({ job, user, onStatusUpdate }) => {
     }
   }, [job]);
 
+useEffect(() => {
+  const updatedCategoryId = job?.deviceCategoryId || job?.deviceTypeId;
+  setSelectedCategoryId(updatedCategoryId ? updatedCategoryId.toString() : '');
+  setSelectedServiceId(job?.serviceId ? job.serviceId.toString() : '');
+  setSelectedServicePrice(job?.servicePrice ?? '');
+  setSelectedServiceDuration(job?.serviceDurationMinutes ?? '');
+  setSelectedServiceName(job?.serviceName || '');
+  setSelectedCategoryName(job?.deviceCategoryName || '');
+}, [
+  job?.deviceTypeId,
+  job?.deviceCategoryId,
+  job?.serviceId,
+  job?.servicePrice,
+  job?.serviceDurationMinutes,
+  job?.serviceName,
+  job?.deviceCategoryName,
+]);
+
   // Load spare parts from Redux store
   useEffect(() => {
     if (user?.token) {
@@ -129,22 +153,191 @@ const JobStatusControls = ({ job, user, onStatusUpdate }) => {
     }
   }, [dispatch, user?.token]);
 
+  useEffect(() => {
+    let isMounted = true;
+    const loadHierarchy = async () => {
+      if (!user?.token) return;
+      setSelectionLoading(true);
+      try {
+        const [categoriesRes, servicesRes] = await Promise.all([
+          fetchDeviceCategories(),
+          fetchServicesList()
+        ]);
+        if (!isMounted) return;
+        setDeviceCategories(Array.isArray(categoriesRes?.data) ? categoriesRes.data : []);
+        setServiceTemplates(Array.isArray(servicesRes?.data) ? servicesRes.data : []);
+      } catch (error) {
+        console.error('Greška pri učitavanju usluga za radnika:', error);
+      } finally {
+        if (isMounted) {
+          setSelectionLoading(false);
+        }
+      }
+    };
+
+    loadHierarchy();
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.token]);
+
   // Timer callback functions - memoized to prevent re-renders
+  const formatDuration = useCallback((minutes) => {
+    if (minutes === null || minutes === undefined || minutes === '') return 'Trajanje nije postavljeno';
+    const total = Number(minutes);
+    if (!Number.isFinite(total)) return 'Trajanje nije postavljeno';
+    if (total < 60) return `${total} min`;
+    const hours = Math.floor(total / 60);
+    const rem = total % 60;
+    return rem === 0 ? `${hours}h` : `${hours}h ${rem}min`;
+  }, []);
+
   const updateTravelTimer = useCallback(() => {
     if (isTraveling && travelStartTime) {
       const elapsed = Math.floor((Date.now() - travelStartTime) / 1000);
       const total = accumulatedTravelTimeRef.current + elapsed;
       setTravelTime(total);
-      setTotalTravelTime(total);
     }
   }, [isTraveling, travelStartTime]);
+
+  const normalizeId = (value) => {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object') {
+      if (value.id) return value.id.toString();
+      if (value._id) return value._id.toString();
+    }
+    return value.toString();
+  };
+
+  const workerCategoryOptions = useMemo(() => deviceCategories.map(category => ({
+    value: normalizeId(category.id || category._id),
+    label: category.name,
+    categoryName: category.name,
+    categoryColor: category.color || '#374151',
+  })), [deviceCategories]);
+
+  const workerSelectedCategory = useMemo(() => {
+    const normalized = normalizeId(selectedCategoryId);
+    if (!normalized) {
+      if (selectedCategoryName) {
+        return { name: selectedCategoryName, color: '#374151' };
+      }
+      return null;
+    }
+    return deviceCategories.find(category => normalizeId(category.id || category._id) === normalized) || (selectedCategoryName ? { name: selectedCategoryName, color: '#374151' } : null);
+  }, [deviceCategories, selectedCategoryId, selectedCategoryName]);
+
+  const workerServiceOptions = useMemo(() => {
+    if (!serviceTemplates || serviceTemplates.length === 0) return [];
+    const selectedCategory = normalizeId(selectedCategoryId);
+    return serviceTemplates
+      .filter((service) => !selectedCategory || normalizeId(service.deviceCategoryId || service.deviceCategory?.id) === selectedCategory)
+      .map((service) => ({
+        value: normalizeId(service.id || service._id),
+        label: service.name,
+        price: service.price ?? '',
+        durationMinutes: service.durationMinutes ?? '',
+      }));
+  }, [serviceTemplates, selectedCategoryId]);
+
+  const workerSelectedService = useMemo(() => {
+    if (!selectedServiceId) return null;
+    return serviceTemplates.find((service) => normalizeId(service.id || service._id) === selectedServiceId) || null;
+  }, [serviceTemplates, selectedServiceId]);
+
+  const handleWorkerCategoryChange = useCallback((value) => {
+    setSelectedCategoryId(value);
+    if (!value) {
+      setSelectedCategoryName('');
+      setSelectedServiceId('');
+      setSelectedServiceName('');
+      setSelectedServicePrice('');
+       setSelectedServiceDuration('');
+      return;
+    }
+    const option = workerCategoryOptions.find((opt) => opt.value === value);
+    setSelectedCategoryName(option?.categoryName || '');
+    setSelectedServiceId('');
+    setSelectedServiceName('');
+    setSelectedServicePrice('');
+    setSelectedServiceDuration('');
+  }, [workerCategoryOptions]);
+
+  const handleWorkerServiceChange = useCallback((value) => {
+    setSelectedServiceId(value);
+    if (!value) {
+      setSelectedServiceName('');
+      setSelectedServicePrice('');
+      setSelectedServiceDuration('');
+      return;
+    }
+    const service = serviceTemplates.find((item) => normalizeId(item.id || item._id) === value);
+    if (service) {
+      setSelectedServiceName(service.name || '');
+      setSelectedServicePrice(service.price ?? '');
+      setSelectedServiceDuration(service.durationMinutes ?? '');
+      const serviceCategoryId = normalizeId(service.deviceCategoryId || service.deviceCategory?.id);
+      if (serviceCategoryId && serviceCategoryId !== selectedCategoryId) {
+        setSelectedCategoryId(serviceCategoryId);
+      }
+      const categoryRef = service.deviceCategory || deviceCategories.find((category) => normalizeId(category.id || category._id) === normalizeId(service.deviceCategoryId || service.deviceCategory?.id));
+      if (categoryRef?.name) {
+        setSelectedCategoryName(categoryRef.name);
+      }
+    }
+  }, [serviceTemplates, deviceCategories, selectedCategoryId]);
+
+  const persistJobSelections = useCallback(async () => {
+    if (!job?._id) return;
+    if (!user?.token) return;
+
+    const hasCategoryUpdate = !!selectedCategoryId;
+    const hasServiceUpdate = !!selectedServiceId;
+    if (!hasCategoryUpdate && !hasServiceUpdate) return;
+
+    const servicePriceValue =
+      selectedServicePrice === '' || selectedServicePrice === null || selectedServicePrice === undefined
+        ? null
+        : Number(selectedServicePrice);
+
+    const serviceDurationValue =
+      selectedServiceDuration === '' || selectedServiceDuration === null || selectedServiceDuration === undefined
+        ? null
+        : Number(selectedServiceDuration);
+
+    const normalizedCategoryId = selectedCategoryId ? normalizeId(selectedCategoryId) : null;
+    const resolvedCategoryName =
+      workerSelectedCategory?.name || selectedCategoryName || job?.deviceCategoryName || '';
+
+    const payload = {
+      deviceTypeId: normalizedCategoryId || null,
+      deviceType: resolvedCategoryName || job?.deviceType || '',
+      deviceCategoryId: normalizedCategoryId || job?.deviceCategoryId || null,
+      deviceCategoryName: resolvedCategoryName,
+      serviceId: selectedServiceId || null,
+      serviceName: selectedServiceName || workerSelectedService?.name || job?.serviceName || '',
+      servicePrice: servicePriceValue !== null && Number.isFinite(servicePriceValue) ? servicePriceValue : null,
+      serviceDurationMinutes:
+        serviceDurationValue !== null && Number.isFinite(serviceDurationValue) ? serviceDurationValue : null,
+    };
+
+    try {
+      await axios.put(
+        `${API_BASE_URL}/api/jobs/${job._id}`,
+        payload,
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
+    } catch (error) {
+      console.error('Greška pri ažuriranju usluge/tipa uređaja za posao:', error);
+    }
+  }, [job?._id, user?.token, selectedCategoryId, selectedServiceId, selectedServicePrice, selectedServiceDuration, workerSelectedCategory, workerSelectedService, selectedCategoryName, selectedServiceName, job?.deviceType, job?.serviceName, job?.deviceCategoryId, job?.deviceCategoryName]);
 
   const updateWorkTimer = useCallback(() => {
     if (isWorking && workStartTime) {
       const elapsed = Math.floor((Date.now() - workStartTime) / 1000);
       const total = accumulatedWorkTimeRef.current + elapsed;
       setWorkTime(total);
-      setTotalWorkTime(total);
     }
   }, [isWorking, workStartTime]);
 
@@ -156,7 +349,6 @@ const JobStatusControls = ({ job, user, onStatusUpdate }) => {
     } else {
       // Ako nije traveling, postavi vreme na akumulirano
       setTravelTime(accumulatedTravelTimeRef.current);
-      setTotalTravelTime(accumulatedTravelTimeRef.current);
     }
     return () => clearInterval(interval);
   }, [isTraveling, travelStartTime, updateTravelTimer]);
@@ -169,7 +361,6 @@ const JobStatusControls = ({ job, user, onStatusUpdate }) => {
     } else {
       // Ako nije working, postavi vreme na akumulirano
       setWorkTime(accumulatedWorkTimeRef.current);
-      setTotalWorkTime(accumulatedWorkTimeRef.current);
     }
     return () => clearInterval(interval);
   }, [isWorking, workStartTime, updateWorkTimer]);
@@ -317,45 +508,7 @@ const JobStatusControls = ({ job, user, onStatusUpdate }) => {
     
     // Update worker status - keep 'on_the_road' but paused
     updateWorkerStatusOnly('on_the_road', `Pauzirao putovanje - Posao: ${job.clientName || 'Stranka'}`);
-  }, [travelTime, saveAccumulatedTimes, job]);
-
-  const resumeTravel = useCallback(() => {
-    const now = Date.now();
-    setIsTraveling(true);
-    setIsPaused(false);
-    // Ne resetujemo travelTime, već počinjemo novu sesiju
-    setTravelStartTime(now);
-    
-    // Save timer state to localStorage
-    const jobId = job?._id;
-    if (jobId) {
-      localStorage.setItem(`isTraveling_${jobId}`, 'true');
-      localStorage.setItem(`travelStartTime_${jobId}`, now.toString());
-    }
-    
-    addTimeLog('resume_travel', 'Nastavio putovanje');
-    
-    // Update job status back to 'On Road'
-    updateJobStatus('On Road');
-    
-    // Update worker status back to 'on_the_road'
-    updateWorkerStatusOnly('on_the_road', `Nastavio putovanje - Posao: ${job.clientName || 'Stranka'}`);
-  }, [job, updateWorkerStatusOnly]);
-
-  const arriveAtClient = () => {
-    setIsTraveling(false);
-    setIsWorking(false);
-    setIsPaused(false);
-    // Sačuvaj trenutno vreme putovanja u ref (oduzmi akumulirano da dobijemo samo trenutno)
-    const currentSessionTime = travelTime - accumulatedTravelTimeRef.current;
-    accumulatedTravelTimeRef.current += currentSessionTime;
-    setTravelTime(0);
-    setTravelStartTime(null);
-    setWorkStartTime(null);
-    saveAccumulatedTimes(); // Sačuvaj u localStorage
-    // Don't update job status immediately to avoid page reload
-    addTimeLog('arrive_client', 'Stigao kod stranke');
-  };
+  }, [travelTime, saveAccumulatedTimes, job, updateWorkerStatusOnly]);
 
   const startWork = () => {
     // Stop travel if it's active
@@ -376,7 +529,6 @@ const JobStatusControls = ({ job, user, onStatusUpdate }) => {
     const now = Date.now();
     setIsWorking(true);
     setIsPaused(false);
-    setHasStartedWork(true);
     setWorkStartTime(now);
     
     // Save timer state to localStorage
@@ -416,29 +568,6 @@ const JobStatusControls = ({ job, user, onStatusUpdate }) => {
     
     // Update worker status - keep 'at_client' but paused
     updateWorkerStatusOnly('at_client', `Pauzirao rad - Posao: ${job.clientName || 'Stranka'}`);
-  };
-
-  const resumeWork = () => {
-    const now = Date.now();
-    setIsWorking(true);
-    setIsPaused(false);
-    // Ne resetujemo workTime, već počinjemo novu sesiju
-    setWorkStartTime(now);
-    
-    // Save timer state to localStorage
-    const jobId = job?._id;
-    if (jobId) {
-      localStorage.setItem(`isWorking_${jobId}`, 'true');
-      localStorage.setItem(`workStartTime_${jobId}`, now.toString());
-    }
-    
-    addTimeLog('resume_work', 'Nastavio rad');
-    
-    // Update job status back to 'In Repair'
-    updateJobStatus('In Repair');
-    
-    // Update worker status back to 'at_client'
-    updateWorkerStatusOnly('at_client', `Nastavio rad - Posao: ${job.clientName || 'Stranka'}`);
   };
 
   const completeJob = () => {
@@ -522,6 +651,8 @@ const JobStatusControls = ({ job, user, onStatusUpdate }) => {
     try {
       setLoading(true);
       const token = user?.token;
+
+      await persistJobSelections();
 
       // Pošalji izveštaj na backend
       await axios.post(
@@ -625,7 +756,6 @@ const JobStatusControls = ({ job, user, onStatusUpdate }) => {
             <button
               onClick={() => {
                 setTravelTime(0);
-                setTotalTravelTime(0);
                 accumulatedTravelTimeRef.current = 0;
                 setTravelStartTime(null);
                 setIsTraveling(false);
@@ -647,12 +777,10 @@ const JobStatusControls = ({ job, user, onStatusUpdate }) => {
             <button
               onClick={() => {
                 setWorkTime(0);
-                setTotalWorkTime(0);
                 accumulatedWorkTimeRef.current = 0;
                 setWorkStartTime(null);
                 setIsWorking(false);
                 setIsPaused(false);
-                setHasStartedWork(false);
                 saveAccumulatedTimes();
               }}
               className="px-2 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded transition-colors flex items-center gap-1"
@@ -917,6 +1045,77 @@ const JobStatusControls = ({ job, user, onStatusUpdate }) => {
 
             {/* Report Form */}
             <form className="space-y-4">
+              <div className="bg-gray-700 rounded-lg p-4 space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-300 mb-2">
+                    Kategorija uređaja
+                  </label>
+                  <select
+                    value={selectedCategoryId}
+                    onChange={(event) => handleWorkerCategoryChange(event.target.value)}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    disabled={selectionLoading || workerCategoryOptions.length === 0}
+                  >
+                    <option value="">{selectionLoading ? 'Učitavanje...' : 'Izaberi kategoriju'}</option>
+                    {workerCategoryOptions.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                  {workerSelectedCategory && (
+                    <p className="text-[11px] text-gray-300 mt-2 inline-flex items-center gap-2">
+                      <span className="uppercase tracking-wide text-gray-400">Kategorija:</span>
+                      <span
+                        className="px-2 py-0.5 rounded-full text-[10px] font-semibold text-white"
+                        style={{ backgroundColor: workerSelectedCategory.color || '#4B5563' }}
+                      >
+                        {workerSelectedCategory.name}
+                      </span>
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-300 mb-2">
+                    Izabrana usluga
+                  </label>
+                  <select
+                    value={selectedServiceId}
+                    onChange={(event) => handleWorkerServiceChange(event.target.value)}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    disabled={selectionLoading || workerServiceOptions.length === 0}
+                  >
+                    <option value="">{selectionLoading ? 'Učitavanje...' : workerServiceOptions.length === 0 ? 'Dodaj usluge u administraciji' : 'Izaberi uslugu'}</option>
+                    {workerServiceOptions.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                  {selectedServiceId && (
+                    <div className="mt-2 space-y-1 text-[11px] text-gray-300">
+                      <div className="flex items-center justify-between">
+                        <span>Usluga: {selectedServiceName || workerSelectedService?.name}</span>
+                        <span className="text-emerald-300 font-semibold">
+                          {selectedServicePrice !== '' && Number.isFinite(Number(selectedServicePrice))
+                            ? `${Number(selectedServicePrice).toLocaleString('sr-RS')} RSD`
+                            : workerSelectedService?.price
+                              ? `${Number(workerSelectedService.price).toLocaleString('sr-RS')} RSD`
+                              : 'Cena nije postavljena'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-gray-400">
+                        <span>Trajanje</span>
+                        <span>
+                          {formatDuration(
+                            selectedServiceDuration !== ''
+                              ? selectedServiceDuration
+                              : workerSelectedService?.durationMinutes
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Materials Used - Spare Parts */}
               <div>
                 <label className="block text-xs font-medium font-medium text-gray-300 mb-2">

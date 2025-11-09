@@ -1,11 +1,14 @@
 import React from 'react';
 import Select from 'react-select';
+import { useTranslation } from 'react-i18next';
 
 const SparePartsMultiSelect = ({ value, onChange, options }) => {
+  const { t } = useTranslation();
+  
   return (
     <div className="mb-4">
       <label className="block text-sm font-medium text-gray-200 mb-1">
-        Used Spare Parts
+        {t('jobs.usedSpareParts')}
       </label>
       <Select
         value={value}
@@ -14,7 +17,7 @@ const SparePartsMultiSelect = ({ value, onChange, options }) => {
         isMulti
         className="react-select-container"
         classNamePrefix="react-select"
-        placeholder="Select spare parts"
+        placeholder={t('jobs.selectSpareParts')}
         styles={{
           control: (base) => ({
             ...base,

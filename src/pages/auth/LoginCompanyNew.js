@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import { login } from "../../redux/features/authSlice";
@@ -163,9 +163,9 @@ const LoginCompanyNew = () => {
                 </label>
               </div>
               <div className="text-sm">
-                <a href="#" className="text-green-400 hover:text-green-300 font-medium">
-                  Forgot password?
-                </a>
+                <Link to="/forgot-password" className="text-green-400 hover:text-green-300 font-medium">
+                  Zaboravljena lozinka?
+                </Link>
               </div>
             </div>
 

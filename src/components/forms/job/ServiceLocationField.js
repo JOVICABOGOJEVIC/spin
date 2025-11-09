@@ -1,10 +1,13 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 const ServiceLocationField = ({ value, onChange, inputClass }) => {
+  const { t } = useTranslation();
+  
   return (
     <div className="mb-4">
       <label className="block text-sm font-medium text-gray-200 mb-1">
-        Service Location
+        {t('jobs.serviceLocation')}
       </label>
         <select
           name="serviceLocation"
@@ -12,8 +15,8 @@ const ServiceLocationField = ({ value, onChange, inputClass }) => {
           onChange={(e) => onChange(e.target.value)}
           className={inputClass}
         >
-          <option value="OnSite">On site address</option>
-          <option value="InWorkshop">Service workshop</option>
+          <option value="OnSite">{t('jobs.onSiteAddress')}</option>
+          <option value="InWorkshop">{t('jobs.serviceWorkshop')}</option>
         </select>
     </div>
   );

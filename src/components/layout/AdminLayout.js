@@ -41,7 +41,7 @@ import {
   Home,
   Activity,
   Clock,
-  Wifi,
+  Brain,
   Menu,
   X,
   Phone,
@@ -283,19 +283,19 @@ const AdminLayout = ({ children }) => {
                 {t('nav.workers')}
               </Link>
               <Link 
-                to="/dashboard/live" 
+                to="/dashboard/ai-business" 
                 className="flex items-center py-2 px-4 rounded transition duration-200"
                 style={{
-                  backgroundColor: isLinkActive('/dashboard/live') ? 'var(--nav-active-bg)' : 'transparent',
-                  color: isLinkActive('/dashboard/live') ? 'var(--nav-active-text)' : 'var(--nav-text)',
+                  backgroundColor: isLinkActive('/dashboard/ai-business') ? 'var(--nav-active-bg)' : 'transparent',
+                  color: isLinkActive('/dashboard/ai-business') ? 'var(--nav-active-text)' : 'var(--nav-text)',
                   ':hover': {
                     backgroundColor: 'var(--nav-bg-hover)',
                     color: 'var(--nav-text-hover)'
                   }
                 }}
               >
-                <Wifi className="h-4 w-4 mr-2" />
-                {t('nav.live')}
+                <Brain className="h-4 w-4 mr-2" />
+                {t('nav.aiBusiness')}
               </Link>
               <Link 
                 to="/dashboard/services" 

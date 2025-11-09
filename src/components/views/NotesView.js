@@ -20,6 +20,62 @@ const TAB_TO_TYPE = {
   notifications: 'notification'
 };
 
+const FEATURE_TIMELINE_ITEMS = [
+  {
+    id: 'feature-timer-start',
+    title: 'Tajmer za početak radova',
+    message: 'Na ekranu sada vidiš odbrojavanje do početka posla. Kada vreme istekne, svi dobijamo obaveštenje.',
+    type: 'info',
+    createdAt: '2025-11-05T11:05:00Z'
+  },
+  {
+    id: 'feature-addresses',
+    title: 'Dodavanje više adresa klijenta',
+    message: 'Za svakog klijenta možemo da upišemo još jednu adresu. Lakše je pronaći lokaciju posla.',
+    type: 'success',
+    createdAt: '2025-10-21T16:40:00Z'
+  },
+  {
+    id: 'feature-calendar-nesting',
+    title: 'Ugnježdeni prikaz kalendara',
+    message: 'Kalendar radi na svim ekranima bez grešaka. Možeš ga otvarati bilo gde u aplikaciji.',
+    type: 'info',
+    createdAt: '2025-10-03T09:20:00Z'
+  },
+  {
+    id: 'feature-job-timeline',
+    title: 'Praćenje statusa radnika',
+    message: 'Kada se prijaviš, promeniš status ili odeš sa posla, ostali odmah vide upozorenje.',
+    type: 'warning',
+    createdAt: '2025-09-19T14:15:00Z'
+  },
+  {
+    id: 'feature-client-notes',
+    title: 'Vodič kroz beleške i obaveštenja',
+    message: 'Na stranici Obaveštenja vidiš svoje beleške i poruke sistema. Možeš da označiš šta te zanima.',
+    type: 'info',
+    createdAt: '2025-09-02T10:30:00Z'
+  },
+  {
+    id: 'feature-scheduling-updates',
+    title: 'Napredne opcije zakazivanja',
+    message: 'Kalendar ima dnevni, nedeljni i mesečni pregled. Posao možeš da prevučeš na novi termin.',
+    type: 'success',
+    createdAt: '2025-08-18T08:45:00Z'
+  }
+];
+
+const generateFeatureTimeline = () =>
+  FEATURE_TIMELINE_ITEMS
+    .map((item) => ({
+      _id: item.id,
+      title: item.title,
+      message: item.message,
+      type: item.type,
+      createdAt: item.createdAt
+    }))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
 const NotificationsView = () => {
   const { user } = useSelector((state) => state.auth);
   const jobState = useSelector((state) => state.job || { jobs: [], loading: false });
@@ -32,9 +88,10 @@ const NotificationsView = () => {
 
   const [entries, setEntries] = useState([]);
   const [selectedEntryId, setSelectedEntryId] = useState(null);
-  const [activeTab, setActiveTab] = useState('notes');
+  const [activeTab, setActiveTab] = useState('notifications');
   const [draft, setDraft] = useState(() => createEmptyEntry('note'));
-  const [globalNotifications, setGlobalNotifications] = useState([]);
+  const featureTimeline = useMemo(() => generateFeatureTimeline(), []);
+  const [globalNotifications, setGlobalNotifications] = useState(featureTimeline);
   const [loadingGlobalNotifications, setLoadingGlobalNotifications] = useState(false);
   const interestStorageKey = useMemo(() => `spinTasker_notification_interest_${userId}`, [userId]);
   const hiddenStorageKey = useMemo(() => `spinTasker_notification_hidden_${userId}`, [userId]);
@@ -114,7 +171,16 @@ const NotificationsView = () => {
         const exists = prev.some(n => n._id === data.notification._id);
         if (!exists) {
           toast.info(`Novo obaveštenje: ${data.notification.title}`);
-          return [data.notification, ...prev];
+          const incoming = {
+            _id: data.notification._id,
+            title: data.notification.title || 'Obaveštenje',
+            message: data.notification.message || '',
+            type: data.notification.type || 'info',
+            createdAt: data.notification.createdAt || new Date().toISOString()
+          };
+          return [incoming, ...prev].sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
         }
         return prev;
       });
@@ -131,7 +197,31 @@ const NotificationsView = () => {
     try {
       setLoadingGlobalNotifications(true);
       const response = await getGlobalNotifications();
-      setGlobalNotifications(response.data || []);
+      const remoteNotifications = Array.isArray(response.data) ? response.data : [];
+      const combinedMap = new Map();
+
+      featureTimeline.forEach((item) => {
+        combinedMap.set(item._id, item);
+      });
+
+      remoteNotifications.forEach((item) => {
+        if (!item || !item._id) {
+          return;
+        }
+        combinedMap.set(item._id, {
+          _id: item._id,
+          title: item.title || item.message || 'Obaveštenje',
+          message: item.message || '',
+          type: item.type || 'info',
+          createdAt: item.createdAt || new Date().toISOString()
+        });
+      });
+
+      const merged = Array.from(combinedMap.values()).sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+      setGlobalNotifications(merged);
     } catch (error) {
       console.error('Error fetching global notifications:', error);
       // Don't show error toast as this is background fetch
@@ -393,25 +483,29 @@ const NotificationsView = () => {
           <div className="inline-flex rounded-lg border border-gray-700 overflow-hidden">
             <button
               className={`px-4 py-2 text-sm font-medium transition-colors ${
-                activeTab === 'notes' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700'
-              }`}
-              onClick={() => setActiveTab('notes')}
-            >
-              Beleške
-            </button>
-            <button
-              className={`px-4 py-2 text-sm font-medium transition-colors ${
                 activeTab === 'notifications' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700'
               }`}
               onClick={() => setActiveTab('notifications')}
             >
               Obaveštenja
             </button>
+            <button
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === 'notes' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700'
+              }`}
+              onClick={() => setActiveTab('notes')}
+            >
+              Beleške
+            </button>
           </div>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
-          <aside className="lg:col-span-4 bg-gray-800/80 border border-gray-700 rounded-xl shadow-lg flex flex-col">
+          <aside
+            className={`${
+              activeTab === 'notifications' ? 'lg:col-span-12' : 'lg:col-span-4'
+            } bg-gray-800/80 border border-gray-700 rounded-xl shadow-lg flex flex-col`}
+          >
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
               <div>
                 <h2 className="text-lg font-semibold text-white">
@@ -419,8 +513,8 @@ const NotificationsView = () => {
                 </h2>
                 <p className="text-xs text-gray-400">
                   {activeTab === 'notes'
-                    ? 'Brzo zabeležite informacije i ideje'
-                    : 'Globalna obaveštenja poslata od strane administracije'}
+                    ? 'Brzo zabeležite podatke i ideje'
+                    : 'Obaveštenja od sistema poslata od strane administracije'}
                 </p>
               </div>
               {activeTab === 'notes' && (
@@ -449,56 +543,116 @@ const NotificationsView = () => {
                     </div>
                   ) : (
                     <ul className="divide-y divide-gray-700">
-                      {globalNotifications.filter(n => !hiddenNotifications[n._id]).map((notification) => (
-                        <li key={notification._id}>
-                          <button
-                            onClick={() => {
-                              setSelectedEntryId(`global-${notification._id}`);
+                      {globalNotifications
+                        .filter(n => !hiddenNotifications[n._id])
+                        .map((notification) => {
+                          const notifId = notification._id;
+                          const isSelected = selectedEntryId === `global-${notifId}`;
+
+                          const handleToggle = () => {
+                            if (isSelected) {
+                              setSelectedEntryId(null);
+                            } else {
+                              setSelectedEntryId(`global-${notifId}`);
                               setDraft({
-                                id: `global-${notification._id}`,
+                                id: `global-${notifId}`,
                                 title: notification.title,
                                 content: notification.message,
                                 type: 'notification',
                                 createdAt: notification.createdAt,
                                 updatedAt: notification.createdAt
                               });
-                            }}
-                            className={`w-full text-left px-4 py-3 transition-colors ${
-                              selectedEntryId === `global-${notification._id}` ? 'bg-blue-500/10 border-l-4 border-blue-500' : 'hover:bg-gray-700'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <h3 className="text-sm font-semibold text-white truncate">
-                                {notification.title}
-                              </h3>
-                              <div className="flex items-center gap-2">
-                                <span className={`text-xs px-2 py-1 rounded ${
-                                  notification.type === 'info' ? 'bg-blue-500/20 text-blue-300' :
-                                  notification.type === 'success' ? 'bg-green-500/20 text-green-300' :
-                                  notification.type === 'warning' ? 'bg-yellow-500/20 text-yellow-300' :
-                                  'bg-red-500/20 text-red-300'
-                                }`}>
-                                  {notification.type}
-                                </span>
-                                {notificationInterest[notification._id] === 'interested' && (
-                                  <span className="text-emerald-400 text-xs">Zanima me</span>
-                                )}
-                                {notificationInterest[notification._id] === 'not_interested' && (
-                                  <span className="text-gray-400 text-xs">Ne zanima</span>
-                                )}
-                                <span className="text-xs text-gray-400 ml-2">
-                                  {formatTimestamp(notification.createdAt)}
-                                </span>
-                              </div>
-                            </div>
-                            {notification.message && (
-                              <p className="text-xs text-gray-400 mt-1 line-clamp-2">
-                                {notification.message}
-                              </p>
-                            )}
-                          </button>
-                        </li>
-                      ))}
+                            }
+                          };
+
+                          return (
+                            <li key={notifId} className="border-b border-gray-800 last:border-none">
+                              <button
+                                onClick={handleToggle}
+                                className={`w-full text-left px-4 py-3 transition-colors flex items-center justify-between gap-3 ${
+                                  isSelected ? 'bg-blue-500/10 border-l-4 border-blue-500' : 'hover:bg-gray-700'
+                                }`}
+                              >
+                                <div className="flex-1">
+                                  <h3 className="text-sm font-semibold text-white truncate">
+                                    {notification.title}
+                                  </h3>
+                                  <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
+                                    <span className={`px-2 py-0.5 rounded ${
+                                      notification.type === 'info' ? 'bg-blue-500/20 text-blue-300' :
+                                      notification.type === 'success' ? 'bg-green-500/20 text-green-300' :
+                                      notification.type === 'warning' ? 'bg-yellow-500/20 text-yellow-300' :
+                                      'bg-red-500/20 text-red-300'
+                                    }`}>
+                                      {notification.type}
+                                    </span>
+                                    <span>{formatTimestamp(notification.createdAt)}</span>
+                                    {notificationInterest[notifId] === 'interested' && (
+                                      <span className="text-emerald-400 font-medium">✓ Interesuje me</span>
+                                    )}
+                                    {notificationInterest[notifId] === 'not_interested' && (
+                                      <span className="text-gray-400">Ne zanima</span>
+                                    )}
+                                  </div>
+                                </div>
+                                <svg
+                                  className={`w-4 h-4 text-gray-400 transition-transform ${isSelected ? 'rotate-180' : ''}`}
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+
+                              {isSelected && (
+                                <div className="px-5 pb-5 bg-gray-900/70">
+                                  <div className="bg-gray-900/60 border border-gray-700 rounded-lg p-4 space-y-4">
+                                    <p className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed">
+                                      {notification.message}
+                                    </p>
+                                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-700 pt-3">
+                                      <p className="text-xs text-gray-500">
+                                        Ovo je obaveštenje od sistema od strane administracije. Ne možete ga uređivati.
+                                      </p>
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={() => {
+                                            const updated = { ...notificationInterest, [notifId]: 'interested' };
+                                            persistInterest(updated);
+                                            setNotificationInterest(updated);
+                                            toast.success('Obeleženo kao: Interesuje me');
+                                          }}
+                                          className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                                            notificationInterest[notifId] === 'interested'
+                                              ? 'bg-emerald-600 text-white'
+                                              : 'bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600/30'
+                                          }`}
+                                        >
+                                          Interesuje me
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            const updatedHidden = { ...hiddenNotifications, [notifId]: true };
+                                            persistHidden(updatedHidden);
+                                            setHiddenNotifications(updatedHidden);
+                                            toast.info('Obaveštenje više neće biti prikazivano');
+                                            setSelectedEntryId(null);
+                                            setGlobalNotifications(prev => prev.filter(n => n._id !== notifId));
+                                          }}
+                                          className="px-3 py-1.5 rounded text-sm font-medium bg-red-600/20 text-red-300 hover:bg-red-600/30 transition-colors"
+                                        >
+                                          Ne prikazuj ovo obaveštenje
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </li>
+                          );
+                        })}
                     </ul>
                   )}
                 </>
@@ -559,16 +713,16 @@ const NotificationsView = () => {
             </div>
           </aside>
 
+          {activeTab === 'notes' && (
           <section className="lg:col-span-8 bg-gray-800/80 border border-gray-700 rounded-xl shadow-lg p-4 sm:p-6">
-            {((selectedEntryId || isCreatingNew) && activeTab === 'notes') || 
-             (selectedEntryId && selectedEntryId.startsWith('global-')) ? (
+            {(selectedEntryId || isCreatingNew) ? (
               <div className="flex flex-col gap-4 h-full">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div>
                     <p className="text-xs text-gray-400">Kreirano: {formatTimestamp(draft.createdAt)}</p>
                     <p className="text-xs text-gray-500">Ažurirano: {formatTimestamp(draft.updatedAt)}</p>
                   </div>
-                  {selectedEntryId && !selectedEntryId.startsWith('global-') && (
+                  {selectedEntryId && (
                     <button
                       onClick={() => handleDelete(selectedEntryId)}
                       className="inline-flex items-center gap-1 text-sm px-3 py-1.5 bg-red-600/80 hover:bg-red-600 text-white rounded-lg transition-colors"
@@ -579,165 +733,39 @@ const NotificationsView = () => {
                   )}
                 </div>
 
-                {!selectedEntryId?.startsWith('global-') && activeTab === 'notes' ? (
-                  <>
-                    <input
-                      type="text"
-                      value={draft.title || ''}
-                      onChange={(event) => handleFieldChange('title', event.target.value)}
-                      placeholder="Naslov beleške"
-                      className="w-full bg-gray-900/80 border border-gray-700 rounded-lg px-3 py-2 text-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                <input
+                  type="text"
+                  value={draft.title || ''}
+                  onChange={(event) => handleFieldChange('title', event.target.value)}
+                  placeholder="Naslov beleške"
+                  className="w-full bg-gray-900/80 border border-gray-700 rounded-lg px-3 py-2 text-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
 
-                    <textarea
-                      value={draft.content || ''}
-                      onChange={(event) => handleFieldChange('content', event.target.value)}
-                      placeholder="Sadržaj beleške..."
-                      rows={10}
-                      className="flex-1 bg-gray-900/80 border border-gray-700 rounded-lg px-3 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                <textarea
+                  value={draft.content || ''}
+                  onChange={(event) => handleFieldChange('content', event.target.value)}
+                  placeholder="Sadržaj beleške..."
+                  rows={10}
+                  className="flex-1 bg-gray-900/80 border border-gray-700 rounded-lg px-3 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
 
-                    <div className="flex justify-end gap-2">
-                      {isCreatingNew && (
-                        <button
-                          onClick={handleCancel}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors"
-                        >
-                          Otkaži
-                        </button>
-                      )}
-                      <button
-                        onClick={handleSave}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
-                      >
-                        <Save size={16} />
-                        Sačuvaj
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="bg-gray-900/80 border border-gray-700 rounded-lg px-4 py-3">
-                      <h2 className="text-lg font-semibold text-white mb-2">{draft.title}</h2>
-                      <p className="text-sm text-gray-300 whitespace-pre-wrap">{draft.content}</p>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                      <p className="text-xs text-gray-500">
-                        Ovo je globalno obaveštenje od strane administracije. Ne možete ga uređivati.
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => {
-                            const updated = { ...notificationInterest, [draft.id.replace('global-','')]: 'interested' };
-                            persistInterest(updated);
-                            toast.success('Obeleženo kao: Interesuje me');
-                          }}
-                          className={`px-3 py-1.5 rounded text-sm ${
-                            notificationInterest[draft.id?.replace('global-','')] === 'interested'
-                              ? 'bg-emerald-600 text-white'
-                              : 'bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600/30'
-                          }`}
-                        >
-                          Interesuje me
-                        </button>
-                        <button
-                          onClick={() => {
-                            const notifId = draft.id.replace('global-','');
-                            const updatedHidden = { ...hiddenNotifications, [notifId]: true };
-                            persistHidden(updatedHidden);
-                            toast.info('Obaveštenje više neće biti prikazivano');
-                            // Close the form and refresh
-                            setSelectedEntryId(null);
-                            setGlobalNotifications(prev => prev.filter(n => n._id !== notifId));
-                          }}
-                          className="px-3 py-1.5 rounded text-sm bg-red-600/20 text-red-300 hover:bg-red-600/30"
-                        >
-                          Ne prikazuj ovo obaveštenje
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-              </div>
-            ) : activeTab === 'notifications' ? (
-              // Show notifications overview when on notifications tab and nothing selected
-              <div className="space-y-4">
-                <div className="border-b border-gray-700 pb-4">
-                  <h2 className="text-xl font-semibold text-white mb-2">Globalna obaveštenja</h2>
-                  <p className="text-sm text-gray-400">
-                    Obaveštenja poslata od strane administracije platforme
-                  </p>
+                <div className="flex justify-end gap-2">
+                  {isCreatingNew && (
+                    <button
+                      onClick={handleCancel}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Otkaži
+                    </button>
+                  )}
+                  <button
+                    onClick={handleSave}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <Save size={16} />
+                    Sačuvaj
+                  </button>
                 </div>
-                
-                {globalNotifications.filter(n => !hiddenNotifications[n._id]).length === 0 && !loadingGlobalNotifications ? (
-                  <div className="text-center py-10">
-                    <p className="text-gray-400">Nema globalnih obaveštenja.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {globalNotifications
-                      .filter(n => !hiddenNotifications[n._id])
-                      .map((notification) => (
-                      <div
-                        key={notification._id}
-                        className="bg-gray-900/80 border border-gray-700 rounded-lg p-4"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <h3 className="text-lg font-semibold text-white mb-1">
-                              {notification.title}
-                            </h3>
-                            <p className="text-sm text-gray-300 mb-2">{notification.message}</p>
-                            <div className="flex items-center gap-2 mt-2 mb-3">
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                notification.type === 'info' ? 'bg-blue-500/20 text-blue-300' :
-                                notification.type === 'success' ? 'bg-green-500/20 text-green-300' :
-                                notification.type === 'warning' ? 'bg-yellow-500/20 text-yellow-300' :
-                                'bg-red-500/20 text-red-300'
-                              }`}>
-                                {notification.type}
-                              </span>
-                              <span className="text-xs text-gray-400">
-                                {formatTimestamp(notification.createdAt)}
-                              </span>
-                              {notificationInterest[notification._id] === 'interested' && (
-                                <span className="text-xs text-emerald-400">✓ Interesuje me</span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2 mt-3">
-                              <button
-                                onClick={() => {
-                                  const updated = { ...notificationInterest, [notification._id]: 'interested' };
-                                  persistInterest(updated);
-                                  toast.success('Obeleženo kao: Interesuje me');
-                                }}
-                                className={`px-3 py-1.5 rounded text-sm text-xs ${
-                                  notificationInterest[notification._id] === 'interested'
-                                    ? 'bg-emerald-600 text-white'
-                                    : 'bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600/30'
-                                }`}
-                              >
-                                Interesuje me
-                              </button>
-                              <button
-                                onClick={() => {
-                                  const updatedHidden = { ...hiddenNotifications, [notification._id]: true };
-                                  persistHidden(updatedHidden);
-                                  setGlobalNotifications(prev => prev.filter(n => n._id !== notification._id));
-                                  toast.info('Obaveštenje više neće biti prikazivano');
-                                }}
-                                className="px-3 py-1.5 rounded text-sm text-xs bg-red-600/20 text-red-300 hover:bg-red-600/30"
-                              >
-                                Ne prikazuj ovo obaveštenje
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             ) : (
               // Show empty state for notes tab
@@ -757,6 +785,7 @@ const NotificationsView = () => {
               </div>
             )}
           </section>
+          )}
         </div>
       </div>
     </div>

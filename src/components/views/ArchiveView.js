@@ -4,8 +4,7 @@ import { getJobs } from '../../redux/features/jobSlice';
 import { getWorkers } from '../../redux/features/workerSlice';
 import { Calendar, Filter, Download, BarChart3, DollarSign, Package, User, Clock, Archive } from 'lucide-react';
 import axios from 'axios';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import { API_BASE_URL } from '../../config/api.js';
 
 const ArchiveView = () => {
   const dispatch = useDispatch();

@@ -7,6 +7,8 @@ import AuthPage from './pages/auth/AuthPage';
 import Dashboard from './pages/admin/Dashboard';
 import CreateSuperAdmin from './pages/auth/CreateSuperAdmin';
 import VerifyEmail from './pages/auth/VerifyEmail';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 import NotFound from './pages/NotFound';
 import Snowflakes from './components/effects/Snowflakes';
 import { useEffect, useState } from 'react';
@@ -102,6 +104,8 @@ function App() {
             <Route path='/' element={<Home />} />
             <Route path='/auth/*' element={<AuthPage />} />
             <Route path='/verify-email' element={<VerifyEmail />} />
+            <Route path='/forgot-password' element={<ForgotPassword />} />
+            <Route path='/reset-password' element={<ResetPassword />} />
             <Route path='/superadmin' element={<CreateSuperAdmin />} />
             <Route path='/dashboard/*' element={<Dashboard />} />
             <Route path='*' element={<NotFound />} />

@@ -22,39 +22,39 @@ export const getJobFormConfig = (businessType) => {
       clientName: {
         label: 'Client Name',
         type: 'text',
-        required: true,
+        required: false,
       },
       clientPhone: {
         label: 'Phone Number',
         type: 'tel',
-        required: true,
+        required: false,
       },
       clientAddress: {
         label: 'Address',
         type: 'address',
-        required: true,
+        required: false,
       },
       serviceDateTime: {
         label: 'Service Date & Time',
         type: 'datetime',
-        required: true,
+        required: false,
       },
     },
     // Section 1: Client Information
     clientName: {
-      required: true,
+      required: false,
       label: 'Name',
       placeholder: 'Enter client name',
       type: 'text'
     },
     clientPhone: {
-      required: true,
+      required: false,
       label: 'Phone Number',
       placeholder: 'Enter phone number',
       type: 'tel'
     },
     clientAddress: {
-      required: true,
+      required: false,
       label: 'Street',
       placeholder: 'Enter street name',
       type: 'text'
@@ -90,18 +90,14 @@ export const getJobFormConfig = (businessType) => {
       label: 'Device Type',
       placeholder: 'Select device type',
       type: 'select',
-      options: [
-        { value: 'refrigerator', label: 'Refrigerator' },
-        { value: 'freezer', label: 'Freezer' },
-        { value: 'washingMachine', label: 'Washing Machine' },
-        { value: 'dryer', label: 'Dryer' },
-        { value: 'dishwasher', label: 'Dishwasher' },
-        { value: 'oven', label: 'Oven' },
-        { value: 'stove', label: 'Stove' },
-        { value: 'microwave', label: 'Microwave' },
-        { value: 'waterHeater', label: 'Water Heater' },
-        { value: 'airConditioner', label: 'Air Conditioner' }
-      ]
+      options: []
+    },
+    serviceId: {
+      required: false,
+      label: 'Service',
+      placeholder: 'Select service',
+      type: 'select',
+      options: []
     },
     deviceBrand: {
       required: false,
@@ -124,7 +120,7 @@ export const getJobFormConfig = (businessType) => {
 
     // Section 3: Service Details
     issueDescription: {
-      required: true,
+      required: false,
       label: 'Issue Description',
       placeholder: 'Describe the issue',
       type: 'textarea',
@@ -134,7 +130,7 @@ export const getJobFormConfig = (businessType) => {
 
     // Service location toggle
     serviceLocation: {
-      required: true,
+      required: false,
       label: 'Service Location',
       placeholder: 'Select location',
       type: 'select',
@@ -146,7 +142,7 @@ export const getJobFormConfig = (businessType) => {
 
     // Section 4: Additional Details
     serviceDate: {
-      required: true,
+      required: false,
       label: 'Service Date',
       type: 'datetime-local',
       placeholder: 'Select service date and time'
@@ -219,22 +215,15 @@ export const getJobFormConfig = (businessType) => {
       return {
         ...baseConfig,
         deviceType: {
+          ...baseConfig.deviceType,
           required: true,
           label: 'Appliance Type',
-          placeholder: 'Select appliance type',
-          type: 'select',
-          options: [
-            { value: 'refrigerator', label: 'Refrigerator' },
-            { value: 'freezer', label: 'Freezer' },
-            { value: 'washingMachine', label: 'Washing Machine' },
-            { value: 'dryer', label: 'Dryer' },
-            { value: 'dishwasher', label: 'Dishwasher' },
-            { value: 'oven', label: 'Oven' },
-            { value: 'stove', label: 'Stove' },
-            { value: 'microwave', label: 'Microwave' },
-            { value: 'waterHeater', label: 'Water Heater' },
-            { value: 'airConditioner', label: 'Air Conditioner' }
-          ]
+          placeholder: 'Select appliance type'
+        },
+        serviceId: {
+          ...baseConfig.serviceId,
+          label: 'Service',
+          placeholder: 'Select service'
         }
       };
       
@@ -1109,7 +1098,7 @@ export const getJobFormConfig = (businessType) => {
       return {
         ...baseConfig,
         deviceType: {
-          required: true,
+          required: false,
           label: 'Service Type',
           placeholder: 'Select service type',
           type: 'select',
@@ -1142,7 +1131,13 @@ export const getJobFormInitialState = (businessType) => {
     clientPhone: '',
     clientAddress: '',
     clientEmail: '',
+    deviceCategoryId: '',
+    deviceCategoryName: '',
+    deviceTypeId: '',
     deviceType: '',
+    serviceId: '',
+    serviceName: '',
+    servicePrice: '',
     issueDescription: '',
     priority: 'Medium',
     status: 'Received',

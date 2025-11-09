@@ -4,8 +4,7 @@ import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import axios from 'axios';
 import { ArrowRight, Eye, EyeOff, User, MapPin, Clock, CheckCircle } from "lucide-react";
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import { API_BASE_URL } from "../../config/api.js";
 
 const LoginWorkerNew = () => {
   const navigate = useNavigate();
