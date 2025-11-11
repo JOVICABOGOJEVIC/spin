@@ -24,6 +24,21 @@ const parseLocalDate = (dateString) => {
   return new Date(year, month - 1, day);
 };
 
+const WORKING_HOUR_OPTIONS = Array.from({ length: 48 }, (_, index) => {
+  const hour = Math.floor(index / 2);
+  const minute = index % 2 === 0 ? '00' : '30';
+  const value = `${hour.toString().padStart(2, '0')}:${minute}`;
+  return { value, label: value };
+});
+
+const isEndAfterStart = (start, end) => {
+  const [startHour, startMinute] = start.split(':').map(Number);
+  const [endHour, endMinute] = end.split(':').map(Number);
+  const startTotalMinutes = startHour * 60 + startMinute;
+  const endTotalMinutes = endHour * 60 + endMinute;
+  return endTotalMinutes > startTotalMinutes;
+};
+
 const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeChange, onJobSelect, isNested = false }) => {
   const dispatch = useDispatch();
   const { t } = useTranslation();
@@ -35,6 +50,30 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
   const [selectedJob, setSelectedJob] = useState(null); // For job details modal
   const [editingJob, setEditingJob] = useState(null); // For job edit modal
   const [showJobForm, setShowJobForm] = useState(false); // For job form modal
+  const [workingHours, setWorkingHours] = useState({ start: '08:00', end: '20:00' });
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth < 768;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Force day view on mobile for better readability
+  useEffect(() => {
+    if (isMobile && viewMode !== 'day') {
+      setViewMode('day');
+    }
+  }, [isMobile, viewMode]);
 
   // Notify parent component when view mode changes
   useEffect(() => {
@@ -46,9 +85,18 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
   // Generate time slots for each day
   const generateTimeSlots = (date) => {
     const slots = [];
-    // 00:00 to 24:00 (full day), 30 min intervals
-    for (let hour = 0; hour < 24; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
+    const [startHour, startMinute] = workingHours.start.split(':').map(Number);
+    const [endHour, endMinute] = workingHours.end.split(':').map(Number);
+    const startTotalMinutes = startHour * 60 + startMinute;
+    const endTotalMinutes = endHour * 60 + endMinute;
+
+    if (endTotalMinutes <= startTotalMinutes) {
+      return slots;
+    }
+
+    for (let minutes = startTotalMinutes; minutes < endTotalMinutes; minutes += 30) {
+      const hour = Math.floor(minutes / 60);
+      const minute = minutes % 60;
         slots.push({
           id: `${date.toISOString().split('T')[0]}-${hour}-${minute}`,
           time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
@@ -56,7 +104,6 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
           hour,
           minute
         });
-      }
     }
     return slots;
   };
@@ -102,6 +149,13 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
   const timeToMinutes = (hour, minute) => {
     return hour * 60 + minute;
   };
+
+const minutesToTimeString = (totalMinutes) => {
+  const normalized = ((totalMinutes % (24 * 60)) + (24 * 60)) % (24 * 60);
+  const hour = Math.floor(normalized / 60);
+  const minute = normalized % 60;
+  return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+};
 
   // Get jobs for a specific time slot - checks if slot falls within job duration
   const getJobsForTimeSlot = (date, hour, minute) => {
@@ -282,6 +336,22 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
     }
   };
 
+  const getJobTimeSegments = (job) => {
+    if (!job || !job.scheduledTime) return [];
+    const [startHour, startMinute] = job.scheduledTime.split(':').map(Number);
+    if (Number.isNaN(startHour) || Number.isNaN(startMinute)) return [];
+    const startMinutes = startHour * 60 + startMinute;
+    const estimatedHours = parseFloat(job.estimatedDuration);
+    const durationMinutes = Math.max(30, Number.isFinite(estimatedHours) ? Math.round(estimatedHours * 60) : 60);
+    const endMinutes = startMinutes + durationMinutes;
+    const segments = [];
+    for (let segmentStart = startMinutes; segmentStart < endMinutes; segmentStart += 30) {
+      const segmentEnd = Math.min(segmentStart + 30, endMinutes);
+      segments.push({ start: segmentStart, end: segmentEnd });
+    }
+    return segments;
+  };
+
   const calendarDays = generateCalendarDays();
   const monthNames = [
     t('calendar.months.january'), t('calendar.months.february'), t('calendar.months.march'), 
@@ -374,22 +444,26 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
             >
               {t('calendar.day')}
             </button>
-            <button
-              onClick={() => setViewMode('week')}
-              className={`px-2 py-0.5 text-xs ${
-                viewMode === 'week' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}
-            >
-              {t('calendar.week')}
-            </button>
-            <button
-              onClick={() => setViewMode('month')}
-              className={`px-2 py-0.5 text-xs rounded-r ${
-                viewMode === 'month' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}
-            >
-              {t('calendar.month')}
-            </button>
+            {!isMobile && (
+              <button
+                onClick={() => setViewMode('week')}
+                className={`px-2 py-0.5 text-xs ${
+                  viewMode === 'week' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                {t('calendar.week')}
+              </button>
+            )}
+            {!isMobile && (
+              <button
+                onClick={() => setViewMode('month')}
+                className={`px-2 py-0.5 text-xs rounded-r ${
+                  viewMode === 'month' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                {t('calendar.month')}
+              </button>
+            )}
           </div>
           
           {/* Navigation Buttons */}
@@ -628,11 +702,77 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
           <div className="mt-6 bg-gray-800 rounded-lg p-3">
             <h3 className="text-base font-medium text-white mb-3 flex items-center gap-2">
               <Clock className="h-4 w-4" />
-              Termini za {calendarDays[0].toLocaleDateString('sr-RS')} (00:00 - 24:00)
+              Termini za {calendarDays[0].toLocaleDateString('sr-RS')} ({workingHours.start} - {workingHours.end})
             </h3>
+
+            {isMobile && (
+              <div className="mb-3 bg-gray-900 border border-gray-700 rounded-md p-3 text-xs text-gray-200">
+                <div className="font-medium mb-2">Radno vreme</div>
+                <div className="flex items-center gap-2">
+                  <label className="flex flex-col flex-1">
+                    <span className="text-[11px] text-gray-400 mb-1">Od</span>
+                    <select
+                      value={workingHours.start}
+                      onChange={(e) => {
+                        const newStart = e.target.value;
+                        setWorkingHours((prev) => {
+                          const nextState = { ...prev, start: newStart };
+                          if (!isEndAfterStart(nextState.start, nextState.end)) {
+                            const nextOption = WORKING_HOUR_OPTIONS.find((opt) => opt.value > nextState.start);
+                            nextState.end = nextOption ? nextOption.value : '23:30';
+                          }
+                          return nextState;
+                        });
+                      }}
+                      className="bg-gray-800 border border-gray-700 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      {WORKING_HOUR_OPTIONS.slice(0, -1).map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex flex-col flex-1">
+                    <span className="text-[11px] text-gray-400 mb-1">Do</span>
+                    <select
+                      value={workingHours.end}
+                      onChange={(e) => {
+                        const newEnd = e.target.value;
+                        setWorkingHours((prev) => {
+                          const nextState = { ...prev, end: newEnd };
+                          if (!isEndAfterStart(nextState.start, nextState.end)) {
+                            const endIndex = WORKING_HOUR_OPTIONS.findIndex((opt) => opt.value === nextState.end);
+                            const previousOption = WORKING_HOUR_OPTIONS.slice(0, endIndex).reverse().find((opt) => opt.value < nextState.end);
+                            nextState.start = previousOption ? previousOption.value : WORKING_HOUR_OPTIONS[0].value;
+                          }
+                          return nextState;
+                        });
+                      }}
+                      className="bg-gray-800 border border-gray-700 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      {WORKING_HOUR_OPTIONS.slice(1).map((option) => (
+                        <option
+                          key={option.value}
+                          value={option.value}
+                          disabled={option.value <= workingHours.start}
+                        >
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </div>
+            )}
             
             {/* All time slots in one grid */}
-            <div className="grid grid-cols-12 sm:grid-cols-16 md:grid-cols-24 lg:grid-cols-24 xl:grid-cols-48 gap-1">
+            <div
+              className={`grid gap-1 ${
+                isMobile ? '' : 'sm:grid-cols-16 md:grid-cols-24 lg:grid-cols-24 xl:grid-cols-48'
+              }`}
+              style={isMobile ? { gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' } : undefined}
+            >
               {generateTimeSlots(calendarDays[0]).map(slot => {
                 const slotJobs = getJobsForTimeSlot(calendarDays[0], slot.hour, slot.minute);
                 const isOccupied = slotJobs.length > 0;
@@ -776,6 +916,46 @@ const CalendarWithDragDrop = ({ jobs = [], onJobSchedule, onJobMove, onViewModeC
                   )}
                 </div>
               </div>
+
+              {(() => {
+                const jobTimeSegments = getJobTimeSegments(selectedJob);
+                if (!jobTimeSegments.length) return null;
+                const jobStartLabel = selectedJob.scheduledTime;
+                const jobEndLabel = minutesToTimeString(jobTimeSegments[jobTimeSegments.length - 1].end);
+                return (
+                  <div className="bg-gray-700 rounded p-4">
+                    <h4 className="font-semibold text-white text-sm mb-3 flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      {t('jobs.time')}
+                    </h4>
+                    <div className="flex items-center justify-between text-xs text-gray-300 mb-3">
+                      <span className="font-medium text-white">
+                        Start: {jobStartLabel}
+                      </span>
+                      <span className="font-medium text-white">
+                        End: {jobEndLabel}
+                      </span>
+                    </div>
+                    <div
+                      className="grid gap-2"
+                      style={{ gridTemplateColumns: `repeat(${jobTimeSegments.length}, minmax(0, 1fr))` }}
+                    >
+                      {jobTimeSegments.map((segment, index) => (
+                        <div
+                          key={`${segment.start}-${segment.end}-${index}`}
+                          className="rounded-md border border-blue-500/60 bg-blue-500/10 px-2 py-3 text-center text-xs text-blue-100"
+                        >
+                          <div className="font-semibold text-blue-200">
+                            {minutesToTimeString(segment.start)}
+                          </div>
+                          <div className="text-[10px] text-blue-200/60">to</div>
+                          <div>{minutesToTimeString(segment.end)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Issue Description */}
               {selectedJob.issueDescription && (

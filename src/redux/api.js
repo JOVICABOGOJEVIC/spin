@@ -112,7 +112,7 @@ export const getJobs = (businessType) => {
 };
 
 export const getJob = (id) => API.get(`/jobs/${id}`);
-export const updateJob = ({ id, jobData }) => API.put(`/jobs/${id}`, jobData);
+export const updateJob = ({ id, jobData }) => API.patch(`/jobs/${id}`, jobData);
 export const deleteJob = (id) => API.delete(`/jobs/${id}`);
 export const extractJobDataFromMessage = (message) => API.post('/jobs/extract-from-message', { message });
 

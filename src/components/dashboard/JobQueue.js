@@ -267,13 +267,13 @@ const JobQueue = ({ jobs = [], loading = false, onJobSelect, selectedJobId, show
                             </span>
                             
                             {/* Client Name */}
-                            <span className="text-[10px] sm:text-xs font-medium text-white truncate min-w-[60px] max-w-[100px]">
+                            <span className="text-[10px] sm:text-xs font-medium text-white truncate min-w-[80px] max-w-[140px]">
                               {job.clientName}
                             </span>
                             
                             {/* Issue Description - Hidden on very small screens */}
                             <span className="hidden md:block text-[9px] sm:text-[10px] text-gray-300 truncate flex-1">
-                              {job.issueDescription}
+                              {job.clientAddress || '—'}
                             </span>
                             
                             {/* Date and Time */}

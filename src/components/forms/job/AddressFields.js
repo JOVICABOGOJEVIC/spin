@@ -8,15 +8,17 @@ const AddressFields = ({ value, onChange, inputClass }) => {
     <div className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-200 mb-1">
-          {t('jobs.streetAddress')} *
+          {t('jobs.streetAddress')}
         </label>
         <input
           type="text"
           value={value?.street || ''}
           onChange={(e) => onChange({ street: e.target.value })}
           className={inputClass}
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
           placeholder={t('jobs.enterStreetName')}
-          required
         />
       </div>
       <div className="grid grid-cols-3 gap-4">
@@ -29,6 +31,9 @@ const AddressFields = ({ value, onChange, inputClass }) => {
             value={value?.number || ''}
             onChange={(e) => onChange({ number: e.target.value })}
             className={inputClass}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             placeholder={t('jobs.no')}
           />
         </div>
@@ -41,6 +46,9 @@ const AddressFields = ({ value, onChange, inputClass }) => {
             value={value?.floor || ''}
             onChange={(e) => onChange({ floor: e.target.value })}
             className={inputClass}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             placeholder={t('jobs.floor')}
           />
         </div>
@@ -53,6 +61,9 @@ const AddressFields = ({ value, onChange, inputClass }) => {
             value={value?.apartment || ''}
             onChange={(e) => onChange({ apartment: e.target.value })}
             className={inputClass}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             placeholder={t('jobs.apt')}
           />
         </div>

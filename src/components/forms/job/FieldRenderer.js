@@ -155,6 +155,9 @@ const FieldRenderer = ({
           value={value || ''}
           onChange={(e) => onChange(fieldName, e.target.value)}
           className={`${inputClass} ${fieldConfig?.className || ''}`}
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
           placeholder={getTranslatedPlaceholder(fieldName, fieldConfig?.placeholder)}
           required={fieldConfig?.required}
           rows={fieldConfig?.rows || 3}
@@ -225,6 +228,9 @@ const FieldRenderer = ({
         value={value || ''}
         onChange={(e) => onChange(fieldName, e.target.value)}
         className={inputClass}
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck={false}
         placeholder={getTranslatedPlaceholder(fieldName, fieldConfig?.placeholder)}
         required={fieldConfig?.required}
       />

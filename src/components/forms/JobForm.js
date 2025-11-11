@@ -25,6 +25,67 @@ const COUNTRY_PREFIXES = {
   si: '386'  // Slovenia
 };
 
+const SECTION_KEYS = ['clientInfo', 'deviceInfo', 'serviceInfo', 'additionalInfo'];
+
+const extractFieldValue = (jobData, fieldName) => {
+  if (!jobData) return undefined;
+  if (fieldName === 'clientAddress') {
+    return jobData.clientAddress;
+  }
+  if (fieldName === 'serviceDateTime') {
+    return jobData.serviceDateTime;
+  }
+  if (fieldName === 'deviceType') {
+    return jobData.deviceCategoryId || jobData.deviceTypeId || jobData.deviceType || '';
+  }
+  if (fieldName === 'serviceId') {
+    return jobData.serviceId || '';
+  }
+  return jobData[fieldName];
+};
+
+const hasTruthyContent = (value) => {
+  if (value === null || value === undefined) return false;
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+  if (typeof value === 'object') {
+    return Object.values(value).some((val) => hasTruthyContent(val));
+  }
+  if (typeof value === 'string') {
+    return value.trim() !== '';
+  }
+  if (typeof value === 'number') {
+    return !Number.isNaN(value);
+  }
+  if (typeof value === 'boolean') {
+    return value === true;
+  }
+  return Boolean(value);
+};
+
+const fieldHasContent = (fieldName, value) => {
+  if (fieldName === 'serviceDateTime') {
+    if (!value || typeof value !== 'object') return false;
+    return Boolean(value.date);
+  }
+  if (fieldName === 'serviceLocation') {
+    if (!value) return false;
+    return value !== 'OnSite';
+  }
+  if (fieldName === 'clientAddress') {
+    if (!value) return false;
+    if (typeof value === 'string') {
+      return value.trim() !== '';
+    }
+    if (typeof value === 'object') {
+      return Object.values(value).some((val) => hasTruthyContent(val));
+    }
+    return false;
+  }
+  return hasTruthyContent(value);
+};
+
 const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className = '', isModal = false, selectedSlot = null }) => {
   const { t } = useTranslation();
   const businessType = getBusinessType();
@@ -90,6 +151,16 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
   const [showAiExtraction, setShowAiExtraction] = useState(false);
   const [aiMessage, setAiMessage] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth < 768;
+  });
+  const [openSections, setOpenSections] = useState(() =>
+    SECTION_KEYS.reduce((acc, key, index) => {
+      acc[key] = index === 0;
+      return acc;
+    }, {})
+  );
   const dispatch = useDispatch();
   
   const jobState = useSelector((state) => state.job);
@@ -101,6 +172,24 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
   const { user } = useSelector((state) => state.auth);
   const countryCode = user?.result?.countryCode?.toLowerCase() || 'ba';
   const phonePrefix = COUNTRY_PREFIXES[countryCode] || '387';
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const toggleSection = useCallback((key) => {
+    setOpenSections((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  }, []);
   
   // Add title display
   const formTitle = isEdit ? t('jobs.editJob') : 
@@ -187,6 +276,30 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
     if (!jobData.serviceId) return null;
     return serviceTemplates.find((service) => normalizeId(service.id || service._id) === normalizeId(jobData.serviceId)) || null;
   }, [serviceTemplates, jobData.serviceId]);
+
+  const sections = useMemo(() => ({
+    clientInfo: {
+      title: t('jobs.clientInfo'),
+      fields: ['clientName', 'clientPhone', 'serviceLocation', 'clientAddress', 'clientEmail']
+    },
+    deviceInfo: {
+      title: t('jobs.deviceInfo'),
+      fields: ['deviceType', 'serviceId', 'deviceBrand', 'deviceModel', 'deviceSerialNumber']
+    },
+    serviceInfo: {
+      title: t('jobs.serviceInfo'),
+      fields: ['serviceType', 'serviceDateTime', 'isEmergency', 'preferredTimeSlot', 'assignedTo', 'usedSpareParts']
+    },
+    additionalInfo: {
+      title: t('jobs.additionalInfo'),
+      fields: ['issueDescription', 'priority', 'warranty', 'estimatedDuration']
+    }
+  }), [t]);
+
+  const sectionFieldNames = useMemo(
+    () => SECTION_KEYS.flatMap((key) => sections[key]?.fields || []),
+    [sections]
+  );
   
   useEffect(() => {
     if (jobData.deviceCategoryId || !jobData.deviceType || deviceCategories.length === 0) {
@@ -887,51 +1000,57 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
     e.preventDefault();
     console.log('Submitting data:', jobData);
 
-    // No validation - all fields are optional
-    console.log('Submitting job data:', jobData);
-    
-    // Skip all validation and proceed directly to submission
+    const hasUserInput = sectionFieldNames.some((fieldName) => {
+      const value = extractFieldValue(jobData, fieldName);
+      return fieldHasContent(fieldName, value);
+    });
 
-    // Convert clientAddress object to string
-    const addressString = jobData.clientAddress && typeof jobData.clientAddress === 'object' 
-      ? `${jobData.clientAddress.street || ''} ${jobData.clientAddress.number || ''} ${jobData.clientAddress.floor || ''} ${jobData.clientAddress.apartment || ''}`.trim()
+    if (!hasUserInput) {
+      toast.error('Unesite makar jedan podatak pre čuvanja posla.');
+      return;
+    }
+
+    const addressStringRaw =
+      jobData.clientAddress && typeof jobData.clientAddress === 'object'
+        ? `${jobData.clientAddress.street || ''} ${jobData.clientAddress.number || ''} ${jobData.clientAddress.floor || ''} ${jobData.clientAddress.apartment || ''}`
       : jobData.clientAddress || '';
 
-    // Convert usedSpareParts to array of strings (IDs only)
+    const addressString = addressStringRaw.replace(/\s+/g, ' ').trim();
+
     let sparePartsArray = [];
-    if (jobData.usedSpareParts && Array.isArray(jobData.usedSpareParts)) {
-      sparePartsArray = jobData.usedSpareParts.map(part => {
+    if (Array.isArray(jobData.usedSpareParts)) {
+      sparePartsArray = jobData.usedSpareParts
+        .map((part) => {
         if (typeof part === 'string') {
           return part;
-        } else if (part && part.value) {
+          }
+          if (part && part.value) {
           return part.value;
-        } else if (part && part._id) {
+          }
+          if (part && part._id) {
           return part._id;
         }
         return '';
-      }).filter(id => id !== '');
+        })
+        .filter((id) => id !== '');
     }
 
-    // Create date with correct timezone handling - only if date is provided
     let serviceDateValue = null;
     let scheduledTimeValue = null;
     
-    if (jobData.serviceDateTime.date) {
-      // Create date at noon to avoid timezone issues
+    if (jobData.serviceDateTime?.date) {
       const [year, month, day] = jobData.serviceDateTime.date.split('-');
       serviceDateValue = new Date(year, month - 1, day, 12, 0, 0);
-      // Only set time if date is set
       scheduledTimeValue = jobData.serviceDateTime.time || null;
     }
 
-    // Check for time slot overlap if date, time and duration are provided
     if (serviceDateValue && scheduledTimeValue && jobData.estimatedDuration) {
       const overlapCheck = checkJobOverlap(
         {
           serviceDate: serviceDateValue,
           scheduledTime: scheduledTimeValue,
           estimatedDuration: parseFloat(jobData.estimatedDuration),
-          assignedTo: jobData.assignedTo
+          assignedTo: jobData.assignedTo,
         },
         jobs || [],
         isEdit ? jobData._id : null
@@ -946,11 +1065,10 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
           `⚠️ Preklapanje vremena!\n\nOvaj posao (${formatTimeSlot(scheduledTimeValue, endTime)}) se preklapa sa:\n"${overlappingJob.clientName}" (${formatTimeSlot(overlappingJob.scheduledTime, overlappingEndTime)})\n\nDa li želite da nastavite?`,
           {
             autoClose: 8000,
-            position: "top-center"
+            position: 'top-center',
           }
         );
         
-        // Ask for confirmation
         const confirmed = window.confirm(
           `⚠️ UPOZORENJE: Preklapanje vremena!\n\n` +
           `Novi posao: ${scheduledTimeValue} - ${endTime} (${jobData.estimatedDuration}h)\n` +
@@ -959,80 +1077,176 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
         );
         
         if (!confirmed) {
-          return; // Cancel job creation
+          return;
         }
       }
     }
 
-    // Automatically create/check client if phone number is provided
-    if (!isEdit && jobData.clientPhone && jobData.clientPhone !== 'No phone') {
+    const trimmedClientName = jobData.clientName ? jobData.clientName.trim() : '';
+    const trimmedClientPhone = jobData.clientPhone ? jobData.clientPhone.toString().trim() : '';
+    const trimmedClientEmail = jobData.clientEmail ? jobData.clientEmail.trim() : '';
+
+    if (!isEdit && trimmedClientPhone) {
       const clientDataToSave = {
-        name: jobData.clientName || 'Unknown Client',
-        phone: jobData.clientPhone,
-        email: jobData.clientEmail && jobData.clientEmail !== 'no-email@example.com' ? jobData.clientEmail : undefined,
-        address: jobData.clientAddress && typeof jobData.clientAddress === 'object' ? {
+        name: trimmedClientName || trimmedClientPhone,
+        phone: trimmedClientPhone,
+        email: trimmedClientEmail || undefined,
+        address:
+          jobData.clientAddress && typeof jobData.clientAddress === 'object'
+            ? {
           street: jobData.clientAddress.street || '',
           number: jobData.clientAddress.number || '',
           floor: jobData.clientAddress.floor || undefined,
           apartment: jobData.clientAddress.apartment || undefined,
           isHouse: false,
-          countryCode: countryCode
-        } : undefined,
-        description: undefined // Don't copy job description to client
+                countryCode: countryCode,
+              }
+            : undefined,
+        description: undefined,
       };
 
-      // Wait for client creation/check before proceeding
       await handleClientCreation(clientDataToSave);
     }
 
-    const transformedData = {
-      clientName: jobData.clientName || 'Unknown Client',
-      clientPhone: jobData.clientPhone || 'No phone',
-      clientEmail: jobData.clientEmail || 'no-email@example.com',
-      clientAddress: addressString,
-      serviceLocation: jobData.serviceLocation || 'OnSite',
-      deviceCategoryId: jobData.deviceCategoryId || null,
-      deviceCategoryName: jobData.deviceCategoryName || '',
-      deviceTypeId: jobData.deviceTypeId || null,
-      deviceType: jobData.deviceType || 'Unknown Device',
-      deviceBrand: jobData.deviceBrand || 'Unknown Brand',
-      deviceModel: jobData.deviceModel || 'Unknown Model',
-      deviceSerialNumber: jobData.deviceSerialNumber || 'N/A',
-      serviceId: jobData.serviceId || null,
-      serviceName: jobData.serviceName || '',
-      servicePrice: (() => {
-        if (jobData.servicePrice === '' || jobData.servicePrice === null || jobData.servicePrice === undefined) {
-          return null;
-        }
-        const numeric = Number(jobData.servicePrice);
-        return Number.isFinite(numeric) ? numeric : null;
-      })(),
-    serviceDurationMinutes:
-      jobData.serviceDurationMinutes === undefined || jobData.serviceDurationMinutes === null
-        ? null
-        : Number(jobData.serviceDurationMinutes),
-      issueDescription: jobData.issueDescription || 'No description provided',
-      priority: jobData.priority ? jobData.priority.charAt(0).toUpperCase() + jobData.priority.slice(1).toLowerCase() : 'Medium',
-      warranty: jobData.warranty || false,
-      estimatedDuration: jobData.estimatedDuration ? parseFloat(jobData.estimatedDuration) : undefined,
-      assignedTo: jobData.assignedTo || 'Unassigned',
-      usedSpareParts: sparePartsArray,
-      status: 'In Pending', // Use valid enum value
-      businessType: businessType,
-      creator: user?.result?.email || user?.result?.name || 'Unknown'
-    };
-    
-    // Only add serviceDate and scheduledTime if they exist
+    const effectiveBusinessType = jobData.businessType || businessType;
+    const payload = {};
+
+    if (isEdit) {
+      if (jobData.status) {
+        payload.status = jobData.status;
+      }
+      if (effectiveBusinessType) {
+        payload.businessType = effectiveBusinessType;
+      }
+      if (jobData.creator) {
+        payload.creator = jobData.creator;
+      }
+    } else {
+      payload.status = 'In Pending';
+      if (effectiveBusinessType) {
+        payload.businessType = effectiveBusinessType;
+      }
+      payload.creator = user?.result?.email || user?.result?.name || 'Unknown';
+    }
+
+    if (jobData.serviceLocation) {
+      payload.serviceLocation = jobData.serviceLocation;
+    }
+
+    if (trimmedClientName) {
+      payload.clientName = trimmedClientName;
+    }
+
+    if (trimmedClientPhone) {
+      payload.clientPhone = trimmedClientPhone;
+    }
+
+    if (trimmedClientEmail) {
+      payload.clientEmail = trimmedClientEmail;
+    }
+
+    if (addressString) {
+      payload.clientAddress = addressString;
+    }
+
+    if (jobData.deviceCategoryId) {
+      payload.deviceCategoryId = jobData.deviceCategoryId;
+    }
+
+    if (jobData.deviceCategoryName && jobData.deviceCategoryName.trim()) {
+      payload.deviceCategoryName = jobData.deviceCategoryName.trim();
+    }
+
+    if (jobData.deviceTypeId) {
+      payload.deviceTypeId = jobData.deviceTypeId;
+    }
+
+    const resolvedDeviceType = typeof jobData.deviceType === 'string' ? jobData.deviceType.trim() : '';
+    if (resolvedDeviceType) {
+      payload.deviceType = resolvedDeviceType;
+    }
+
+    if (jobData.deviceBrand && jobData.deviceBrand.trim()) {
+      payload.deviceBrand = jobData.deviceBrand.trim();
+    }
+
+    if (jobData.deviceModel && jobData.deviceModel.trim()) {
+      payload.deviceModel = jobData.deviceModel.trim();
+    }
+
+    if (jobData.deviceSerialNumber && jobData.deviceSerialNumber.trim()) {
+      payload.deviceSerialNumber = jobData.deviceSerialNumber.trim();
+    }
+
+    if (jobData.serviceId) {
+      payload.serviceId = jobData.serviceId;
+    }
+
+    if (jobData.serviceName && jobData.serviceName.trim()) {
+      payload.serviceName = jobData.serviceName.trim();
+    }
+
+    if (jobData.servicePrice !== '' && jobData.servicePrice !== null && jobData.servicePrice !== undefined) {
+      const numericPrice = Number(jobData.servicePrice);
+      if (Number.isFinite(numericPrice)) {
+        payload.servicePrice = numericPrice;
+      }
+    }
+
+    if (
+      jobData.serviceDurationMinutes !== undefined &&
+      jobData.serviceDurationMinutes !== null &&
+      jobData.serviceDurationMinutes !== ''
+    ) {
+      const durationMinutes = Number(jobData.serviceDurationMinutes);
+      if (Number.isFinite(durationMinutes)) {
+        payload.serviceDurationMinutes = durationMinutes;
+      }
+    }
+
+    if (jobData.issueDescription && jobData.issueDescription.trim()) {
+      payload.issueDescription = jobData.issueDescription.trim();
+    }
+
+    if (jobData.priority && jobData.priority.trim()) {
+      const normalizedPriority =
+        jobData.priority.charAt(0).toUpperCase() + jobData.priority.slice(1).toLowerCase();
+      payload.priority = normalizedPriority;
+    }
+
+    if (jobData.warranty === true) {
+      payload.warranty = true;
+    }
+
+    if (
+      jobData.estimatedDuration !== undefined &&
+      jobData.estimatedDuration !== null &&
+      jobData.estimatedDuration !== ''
+    ) {
+      const estimatedDurationNumeric = parseFloat(jobData.estimatedDuration);
+      if (Number.isFinite(estimatedDurationNumeric)) {
+        payload.estimatedDuration = estimatedDurationNumeric;
+      }
+    }
+
+    if (jobData.assignedTo && jobData.assignedTo !== 'Unassigned') {
+      payload.assignedTo = jobData.assignedTo;
+    }
+
+    if (sparePartsArray.length > 0) {
+      payload.usedSpareParts = sparePartsArray;
+    }
+
     if (serviceDateValue) {
-      transformedData.serviceDate = serviceDateValue;
+      payload.serviceDate = serviceDateValue;
     }
+
     if (scheduledTimeValue) {
-      transformedData.scheduledTime = scheduledTimeValue;
+      payload.scheduledTime = scheduledTimeValue;
     }
 
-    console.log('🎯 JobForm: Transformed data:', transformedData);
-    console.log('🎯 JobForm: Status being sent:', transformedData.status);
-
+    console.log('🎯 JobForm: Transformed data:', payload);
+    console.log('🎯 JobForm: Mode:', isEdit ? 'edit' : 'create');
     try {
       if (isEdit) {
         if (!jobData?._id) {
@@ -1040,64 +1254,25 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
           toast.error('Greška: ID posla nije definisan');
           return;
         }
-        dispatch(updateJob({ id: jobData._id, jobData: transformedData }));
+        await dispatch(updateJob({ id: jobData._id, jobData: payload })).unwrap();
         toast.success('Job updated successfully');
       } else {
-        dispatch(createJob({ jobData: transformedData }));
+        await dispatch(createJob({ jobData: payload })).unwrap();
         toast.success('Job created successfully');
       }
       onClose();
     } catch (error) {
       console.error('Error submitting job:', error);
-      toast.error('Failed to save job. Please try again.');
+      const errorMessage =
+        error?.message ||
+        error?.data?.message ||
+        error?.response?.data?.message ||
+        error?.error ||
+        (typeof error === 'string' ? error : null) ||
+        'Failed to save job. Please try again.';
+      toast.error(errorMessage);
     }
   };
-  
-
-  // Update sections structure
-  const sections = {
-    clientInfo: {
-      title: t('jobs.clientInfo'),
-      fields: [
-        'clientName',
-        'clientPhone',
-        'serviceLocation',
-        'clientAddress',
-        'clientEmail'
-      ]
-    },
-    deviceInfo: {
-      title: t('jobs.deviceInfo'),
-      fields: [
-        'deviceType', 
-        'serviceId',
-        'deviceBrand', 
-        'deviceModel', 
-        'deviceSerialNumber'
-      ]
-    },
-    serviceInfo: {
-      title: t('jobs.serviceInfo'),
-      fields: [
-        'serviceType',
-        'serviceDateTime',
-        'isEmergency',
-        'preferredTimeSlot',
-        'assignedTo',
-        'usedSpareParts'
-      ]
-    },
-    additionalInfo: {
-      title: t('jobs.additionalInfo'),
-      fields: [
-        'issueDescription',
-        'priority',
-        'warranty',
-        'estimatedDuration'
-      ]
-    }
-  };
-
   // Update input class for smaller size
   const inputClass = "mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-1.5 px-2";
 
@@ -1181,9 +1356,13 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
         </div>
       )}
       
-      {/* Form sections in horizontal row - update to 4 columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        {Object.entries(sections).map(([sectionKey, section]) => (
+      {/* Form sections */}
+      {isMobile ? (
+        <div className="space-y-3">
+          {SECTION_KEYS.map((sectionKey) => {
+            const section = sections[sectionKey];
+            if (!section) return null;
+            return (
           <JobFormSection
             key={sectionKey}
             title={section.title}
@@ -1196,9 +1375,36 @@ const JobForm = ({ isEdit = false, jobData: initialJobData, onClose, className =
             serviceLocation={jobData.serviceLocation}
             onChange={handleFieldChange}
             onQuickAddSparePart={handleQuickAddSparePart}
+                variant="accordion"
+                isOpen={openSections[sectionKey]}
+                onToggle={() => toggleSection(sectionKey)}
           />
-        ))}
+            );
+          })}
       </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+          {SECTION_KEYS.map((sectionKey) => {
+            const section = sections[sectionKey];
+            if (!section) return null;
+            return (
+              <JobFormSection
+                key={sectionKey}
+                title={section.title}
+                fields={section.fields}
+                formConfig={resolvedFormConfig}
+                jobData={jobData}
+                inputClass={inputClass}
+                workerOptions={workerOptions}
+                sparePartsOptions={sparePartsOptions}
+                serviceLocation={jobData.serviceLocation}
+                onChange={handleFieldChange}
+                onQuickAddSparePart={handleQuickAddSparePart}
+              />
+            );
+          })}
+        </div>
+      )}
       
       {/* Form buttons */}
       <div className="flex justify-end space-x-3 mt-6">

@@ -12,6 +12,11 @@ const HeaderSite = React.memo(() => {
   const companyName = user?.companyName || 'SpinTasker';
   const countryCode = user?.countryCode?.toLowerCase() || 'rs';
 
+  const handleNavigate = (path) => {
+    navigate(path);
+    setShowBar(false);
+  };
+
   return (
     <div className='header-container'>
       <div className="header-brand flex items-center gap-2">
@@ -39,9 +44,9 @@ const HeaderSite = React.memo(() => {
             </button>
             <ul className="bar-list">
               <li><FontAwesomeIcon icon={faUser} /></li> 
-              <li onClick={() => navigate("/auth?role=user&type=login")} className="cursor-pointer">Log in / Sign up as a User</li>
-              <li onClick={() => navigate("/auth?role=company&type=login")} className="cursor-pointer">Log in / Sign up as a Company</li>
-              <li className="cursor-pointer text-white">How it works</li>
+              <li onClick={() => handleNavigate("/auth?role=user&type=login") } className="cursor-pointer">Log in / Sign up as a User</li>
+              <li onClick={() => handleNavigate("/auth?role=company&type=login") } className="cursor-pointer">Log in / Sign up as a Company</li>
+              <li className="cursor-pointer text-white" onClick={() => setShowBar(false)}>How it works</li>
             </ul>
           </div>
         </div>

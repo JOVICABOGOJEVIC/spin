@@ -71,6 +71,14 @@ const AdminLayout = ({ children }) => {
   const { user } = useSelector((state) => state.auth);
   const isSuperAdmin = user?.result?.role === 'superadmin';
   const { jobs } = useSelector((state) => state.job || { jobs: [] });
+
+  const handleNavItemSelect = React.useCallback((event) => {
+    if (!sidebarOpen) return;
+    const anchor = event.target.closest('a');
+    if (anchor) {
+      setSidebarOpen(false);
+    }
+  }, [sidebarOpen]);
   
   // Log the user data to check country code
   console.log("AdminLayout user data:", {
@@ -128,10 +136,10 @@ const AdminLayout = ({ children }) => {
   
   return (
     <div 
-      className="flex h-screen"
+      className="flex min-h-screen"
       style={{
-        backgroundColor: 'var(--color-background, #f0fdf4)',
-        color: 'var(--color-text, #1f2937)'
+        backgroundColor: 'var(--dashboard-bg, #0f172a)',
+        color: 'var(--dashboard-text, #e2e8f0)'
       }}
     >
       {/* Sidebar za mobilne - prikazuje se kao overlay */}
@@ -193,7 +201,7 @@ const AdminLayout = ({ children }) => {
         </div>
         
         {/* Navigation */}
-        <nav className="mt-4 px-4 overflow-y-auto pb-20">
+        <nav className="mt-4 px-4 overflow-y-auto pb-20" onClick={handleNavItemSelect}>
           {/* Dashboard Link */}
           <Link 
             to="/dashboard" 
@@ -805,9 +813,9 @@ const AdminLayout = ({ children }) => {
         <header 
           className="lg:hidden flex items-center justify-between px-6 py-4 border-b"
           style={{
-            backgroundColor: 'var(--nav-bg)',
-            borderColor: 'var(--nav-border)',
-            color: 'var(--nav-text)'
+            backgroundColor: 'var(--nav-bg, #111827)',
+            borderColor: 'var(--nav-border, rgba(148, 163, 184, 0.2))',
+            color: 'var(--nav-text, #e2e8f0)'
           }}
         >
           <div className="flex items-center">
@@ -823,11 +831,11 @@ const AdminLayout = ({ children }) => {
         <main 
           className="flex-1 overflow-x-hidden overflow-y-auto"
           style={{
-            backgroundColor: 'var(--color-background, #f0fdf4)',
+            backgroundColor: 'var(--dashboard-surface, rgba(15, 23, 42, 0.95))',
             backgroundImage: 'var(--list-bg-image, none)',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            color: 'var(--color-text, #1f2937)',
+            color: 'var(--dashboard-text, #e2e8f0)',
             minHeight: '100vh'
           }}
         >

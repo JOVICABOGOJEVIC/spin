@@ -20,13 +20,16 @@ import {
   Award,
   TrendingUp,
   Target,
-  Rocket
+  Rocket,
+  Menu,
+  X
 } from 'lucide-react';
 
 const Home = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [hoveredPlan, setHoveredPlan] = useState(null);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const handleGetStarted = () => {
     navigate('/auth?role=company&type=register');
@@ -34,6 +37,11 @@ const Home = () => {
 
   const handleLogin = () => {
     navigate('/auth?role=company&type=login');
+  };
+
+  const handleMobileAction = (action) => {
+    action();
+    setMobileNavOpen(false);
   };
 
   const features = [
@@ -117,7 +125,7 @@ const Home = () => {
     <div className="min-h-screen bg-white">
       {/* Navigation */}
       <nav className="bg-gray-900 border-b border-gray-700 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -126,7 +134,7 @@ const Home = () => {
                 </h1>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="hidden md:flex items-center space-x-4">
               <LanguageSwitcher />
               <button
                 onClick={handleLogin}
@@ -147,7 +155,41 @@ const Home = () => {
                 {t('auth.register')}
               </button>
             </div>
+            <button
+              type="button"
+              className="md:hidden text-gray-300 hover:text-white focus:outline-none"
+              onClick={() => setMobileNavOpen(prev => !prev)}
+              aria-label="Toggle navigation menu"
+            >
+              {mobileNavOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
           </div>
+
+          {mobileNavOpen && (
+            <div className="md:hidden absolute top-full left-0 w-full bg-gray-900 border-b border-gray-700 shadow-lg">
+              <div className="px-4 py-4 space-y-3">
+                <LanguageSwitcher />
+                <button
+                  onClick={() => handleMobileAction(handleLogin)}
+                  className="block w-full text-left text-gray-300 hover:text-green-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  {t('auth.login')}
+                </button>
+                <button
+                  onClick={() => handleMobileAction(() => navigate("/auth?role=worker&type=login"))}
+                  className="block w-full text-left text-gray-300 hover:text-blue-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  {t('auth.loginForWorkers')}
+                </button>
+                <button
+                  onClick={() => handleMobileAction(handleGetStarted)}
+                  className="block w-full text-left bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 transition-colors"
+                >
+                  {t('auth.register')}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 
